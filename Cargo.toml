@@ -1,11 +1,11 @@
 [package]
 name = "calc_lib"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2021"
 authors = ["eric (Sk3pz) skepz.dev@gmail.com"]
 description = "A library for calculating things with correct order of operations"
-repository = "https://github.com/sk3pz/calculate"
-homepage = "https://github.com/sk3pz/calculate"
+repository = "https://github.com/sk3pz/calc_lib"
+homepage = "https://github.com/sk3pz/calc_lib"
 license = "MIT"
 readme = "README.md"
 
