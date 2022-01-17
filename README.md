@@ -1,7 +1,7 @@
 # calc_lib
 
 A simple library for passing in expressions in string from and getting back the result, using correct order of operations.\
-This works best when you have an equation in string form, usually from user input, and need to solve it quickly and efficiently.\
+This works best when you have an equation in string form, usually from user input, and need to solve it quickly and efficiently.
 
 # Examples:
 Integer equations:
