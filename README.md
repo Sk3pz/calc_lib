@@ -3,6 +3,24 @@
 A simple library for passing in expressions in string from and getting back the result, using correct order of operations.\
 This works best when you have an equation in string form, usually from user input, and need to solve it quickly and efficiently.
 
+### Features
+
+* Basic algebraic operations
+* Proper order of operations
+* Optional defined variables (definitions not handled by this library)
+* Integer operations and floating point operations (either/or)
+
+### Planned Features
+
+* Functions such as log, sin, cos, tan, etc. (planned to be both infix: `10 log 2` and normal: `log(10, 2)`)
+* Optional defined functions (planned to be both infix and normal)
+* equation validation (such as `2 + 2 = 4` which is valid, and `2 + 2 = 5` which is not)
+* variable solving (such as `x + 2 = 4` will result in `x = 2`)
+
+### Features that may be implemented in the future
+
+* Solving for multiple variables (such as `x + y = 4` `2x + 2y = 8` will result in `x = 2` `y = 2`)
+
 # Examples:
 Integer equations:
 ```rust
@@ -13,7 +31,8 @@ fn main() {
     // define the expression
     let expression = "(1 + 2) * 3";
     // solve the expression
-    // the expression can also be defined in the parameters, and it can be anything that has the Into<String> trait
+    // the expression can also be defined in the parameters, 
+    // and it can be anything that has the Into<String> trait
     let x = solve(expression);
     // handle errors that may occur
     if x.is_err() {

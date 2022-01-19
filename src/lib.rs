@@ -10,7 +10,6 @@ pub(crate) mod postfix;
 pub(crate) mod interpret;
 pub(crate) mod operator;
 
-
 /// rounds a f64 to a specific decimal place
 /// # Arguments
 /// * value - the value to round
