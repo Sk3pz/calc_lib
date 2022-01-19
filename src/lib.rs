@@ -10,7 +10,20 @@ pub(crate) mod postfix;
 pub(crate) mod interpret;
 pub(crate) mod operator;
 
-fn _round(value: f64, place: usize) -> f64 {
+
+/// rounds a f64 to a specific decimal place
+/// # Arguments
+/// * value - the value to round
+/// * places - the number of decimal places to round to
+/// # Returns the rounded value
+///
+/// # Example
+/// ```
+/// use calc_lib::round;
+///
+/// assert_eq!(round(1.2345, 2), 1.23);
+/// ```
+pub fn round(value: f64, place: usize) -> f64 {
     let round_by = 10.0f64.powi(place as i32) as f64;
     (value * round_by).round() / round_by
 }
