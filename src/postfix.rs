@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::Error;
+use crate::{Error, Number};
 use crate::lex::{Token, TokenType};
 use crate::operator::Operator;
 
@@ -133,16 +133,17 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
 
     for token in tokens {
         match &token.token_type {
-            TokenType::Number(_) | TokenType::Decimal(_) => {
+            TokenType::Num(_) => {
                 if last_was_ident {
                     return Err(Error::new("Invalid Expression: Two identifiers or numbers found in a row", token.pos.clone()));
                 }
                 let mut t = token.clone();
                 if negative {
-                    if let TokenType::Number(x) = token.token_type {
-                        t = Token::new(TokenType::Number(-x), token.pos.clone());
-                    } else if let TokenType::Decimal(x) = token.token_type {
-                        t = Token::new(TokenType::Decimal(-x), token.pos.clone());
+                    if let TokenType::Num(x) = token.token_type.clone() {
+                        t = Token::new(
+                            TokenType::Num(Number::new(-x.value)),
+                            token.pos.clone()
+                        );
                     }
                 }
                 postfix.push(ShuntedStackItem::new_operand(t.token_type));

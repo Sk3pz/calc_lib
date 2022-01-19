@@ -12,7 +12,9 @@ This works best when you have an equation in string form, usually from user inpu
 
 ### Planned Features
 
-* Functions such as log, sin, cos, tan, etc. (planned to be both infix: `10 log 2` and normal: `log(10, 2)`)
+* Functions such as log, sin, cos, tan, etc. 
+  * Planned to be both infix: `10 log 2` where log is treated as an operator and normal: `log(10, 2)`
+  * Note: infix functions can only take 2 parameters
 * Optional defined functions (planned to be both infix and normal)
 * equation validation (such as `2 + 2 = 4` which is valid, and `2 + 2 = 5` which is not)
 * variable solving (such as `x + 2 = 4` will result in `x = 2`)

@@ -1,14 +1,13 @@
 use std::fmt::{Display, Formatter};
 use crate::input_reader::InputReader;
-use crate::{Error, InputPos};
+use crate::{Error, InputPos, Number};
 use crate::operator::Operator;
 
 #[derive(Debug, Clone)]
 pub enum TokenType {
     Operator(Operator),
     Identifier(String),
-    Number(i128),
-    Decimal(f64),
+    Num(Number),
 }
 
 impl Display for TokenType {
@@ -16,8 +15,7 @@ impl Display for TokenType {
         match self {
             TokenType::Operator(o) => write!(f, "Operator:{}", o),
             TokenType::Identifier(ref s) => write!(f, "Ident:{}", s),
-            TokenType::Number(n) => write!(f, "Number:{}", n),
-            TokenType::Decimal(n) => write!(f, "Decimal:{}", n),
+            TokenType::Num(n) => write!(f, "Number:{}", n),
         }
     }
 }
@@ -84,13 +82,13 @@ fn lex_number(input: &mut InputReader) -> Result<Token, Error> {
         if f.is_err() {
             return Err(Error::new_gen(format!("Tried to parse an invalid number: {}", number)));
         }
-        Ok(Token::new(TokenType::Decimal(f.unwrap()), start))
+        Ok(Token::new(TokenType::Num(Number::new(f.unwrap())), start))
     } else {
         let n = number.parse::<i128>();
         if n.is_err() {
             return Err(Error::new_gen(format!("Tried to parse an invalid number: {}", number)));
         }
-        Ok(Token::new(TokenType::Number(n.unwrap()), start))
+        Ok(Token::new(TokenType::Num(Number::new(n.unwrap() as f64)), start))
     }
 }
 

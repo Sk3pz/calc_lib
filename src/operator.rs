@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::Error;
+use crate::{Error, Number};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Operator {
@@ -26,38 +26,21 @@ impl Operator {
         }
     }
 
-    pub(crate) fn apply(&self, left: i128, right: i128) -> Result<i128, Error> {
-        Ok(match self {
-            Operator::Add => left + right,
-            Operator::Sub => left - right,
-            Operator::Mul => left * right,
-            Operator::Div => left / right,
-            Operator::Mod => left % right,
+    pub(crate) fn apply(&self, left: Number, right: Number) -> Result<Number, Error> {
+        Ok(Number::new(match self {
+            Operator::Add => left.as_f64() + right.as_f64(),
+            Operator::Sub => left.as_f64() - right.as_f64(),
+            Operator::Mul => left.as_f64() * right.as_f64(),
+            Operator::Div => left.as_f64() / right.as_f64(),
+            Operator::Mod => left.as_f64() % right.as_f64(),
             Operator::Pow => {
-                if right < 0 {
+                if right.as_f64() < 0.0 {
                     return Err(Error::new_gen("Cannot raise to a negative power!"));
                 }
-                left.pow(right as u32)
+                left.as_f64().powf(right.as_f64())
             }
             _ => panic!("Operator::apply() called on non-operator"),
-        })
-    }
-
-    pub(crate) fn apply_f64(&self, left: f64, right: f64) -> Result<f64, Error>{
-        Ok(match self {
-            Operator::Add => left + right,
-            Operator::Sub => left - right,
-            Operator::Mul => left * right,
-            Operator::Div => left / right,
-            Operator::Mod => left % right,
-            Operator::Pow => {
-                if right < 0.0 {
-                    return Err(Error::new_gen("Cannot raise to a negative power!"));
-                }
-                left.powf(right)
-            }
-            _ => panic!("Operator::apply() called on non-operator"),
-        })
+        }))
     }
 }
 
