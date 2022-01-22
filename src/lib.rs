@@ -61,6 +61,10 @@ impl Display for InputPos {
     }
 }
 
+/// An enum representing an error that occurred
+/// This is used by the Error struct to represent errors
+/// This allows for user handling of errors while still allowing them to just be
+/// printed out if custom handling of errors is not needed.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ErrorType {
     DivByZero,

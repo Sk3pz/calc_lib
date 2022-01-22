@@ -21,10 +21,6 @@ This works best when you have an equation in string form, usually from user inpu
 
 * Solving for multiple variables (such as `x + y = 4` `2x + 2y = 8` will result in `x = 2` `y = 2`)
 
-### Planned changes
-
-* Error system rework to allow for errors that the user can handle (represent errors as an enum instead of a String)
-
 ### Default functions
 accessed with `Functions::default();`
 * `log(base, value)`
@@ -34,6 +30,11 @@ accessed with `Functions::default();`
 * `tan(value)`
 * `atan(value)`
 * `atan2(value, other)`
+
+### Custom Error system:
+
+* Exposes the ErrorType enum which allows the user to determine what type of error occurred, and have all the relevant information about it
+* Allows for the user to handle errors in their own way if needed, but they can also just be printed out.
 
 # Examples:
 Integer equations:
