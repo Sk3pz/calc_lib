@@ -86,6 +86,10 @@ impl Error {
         }
     }
 
+    pub fn create<S: Into<String>>(msg: S) -> Self {
+        Self::new_gen(msg.into())
+    }
+
     /// Returns the error message.
     pub fn get_error(&self) -> &str {
         &self.error
@@ -154,6 +158,52 @@ impl Display for Number {
 /// A list of definitions to pass into the crate to be used in the interpreter.
 pub type Definitions = HashMap<String, Number>;
 
+/// A list of definitions of functions to pass into the interpreter to solve for the variables.
+pub struct Functions<'a> {
+    pub(crate) functions: HashMap<String, Box<dyn Fn(Vec<Number>) -> Result<Number, Error> + 'a>>,
+}
+
+impl<'a> Functions<'a> {
+    pub fn new() -> Self {
+        Self {
+            functions: HashMap::new(),
+        }
+    }
+
+    pub fn register<S: Into<String>, F: Fn(Vec<Number>) -> Result<Number, Error> + 'a + Copy>(&mut self, name: S, f: F) {
+        self.functions.insert(name.into(), Box::new(f));
+    }
+
+    pub fn get<S: Into<String>>(&self, ident: S) -> Option<&Box<dyn Fn(Vec<Number>) -> Result<Number, Error> + 'a>> {
+        let ident = ident.into();
+        if !self.functions.contains_key(&ident) {
+            return None;
+        }
+        self.functions.get(&ident)
+    }
+}
+
+impl Default for Functions<'_> {
+    fn default() -> Self {
+        let mut funcs = Functions::new();
+        funcs.register("log", |args| {
+            if args.len() != 2 {
+                return Err(Error::create(format!("log takes exactly 2 arguments, {} given", args.len())));
+            }
+            Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
+        });
+
+        funcs.register("sqrt", |args| {
+            if args.len() != 1 {
+                return Err(Error::create(format!("sqrt takes exactly 1 argument, {} given", args.len())));
+            }
+            Ok(Number::new(args[0].as_f64().sqrt()))
+        });
+
+        funcs
+    }
+}
+
 /// Solves an equation in infix notation using the shunting yard algorithm.
 /// this function will not accept decimals numbers, only integers.
 /// # Usage Example:
@@ -181,20 +231,39 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 ///
 /// # Usage Example:
 /// ```
-/// use calc_lib::{Definitions, Number, solve_with_definitions};
+/// use calc_lib::{Definitions, Number, solve_defs};
 ///
 /// let mut defs = Definitions::new();
 /// defs.insert("x".to_string(), Number::new(3));
 ///
-/// let solved = solve_with_definitions("(x + 3) / 3", &defs);
+/// let solved = solve_defs("(x + 3) / 3", Some(&defs), None);
 /// assert_eq!(solved.unwrap().as_i128(), 2);
 /// ```
 ///
-pub fn solve_with_definitions<S: Into<String>>(input: S, definitions: &Definitions) -> Result<Number, Error> {
+/// # Usage with functions:
+/// ```
+/// use calc_lib::{Definitions, Functions, Number, Error, solve_defs};
+///
+/// let mut defs = Definitions::new();
+/// defs.insert("x".to_string(), Number::new(3));
+///
+/// let mut funcs = Functions::new();
+/// funcs.register("log", |args| {
+///     if args.len() != 2 {
+///         return Err(Error::create(format!("log takes exactly 2 arguments, {} given", args.len())));
+///     }
+///     Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
+///  });
+///
+/// let solved = solve_defs("log(2, 16)", Some(&defs), Some(&funcs));
+/// assert_eq!(solved.unwrap().as_i128(), 4);
+/// ```
+///
+pub fn solve_defs<S: Into<String>>(input: S, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<Number, Error> {
     let mut input = InputReader::new(input.into());
     let mut tokens = lex::lex(&mut input, true)?;
     let mut shunted = postfix::shunting_yard(&mut tokens)?;
-    interpret_with_definitions(&mut shunted, definitions)
+    interpret_with_definitions(&mut shunted, definitions, functions)
 }
 
 #[cfg(test)]
@@ -206,7 +275,7 @@ mod test {
         if solved.is_err() {
             panic!("{}", solved.err().unwrap());
         }
-        assert_eq!(solved.unwrap().as_f64(), 7.0);
+        assert_eq!(solved.unwrap().as_i128(), 7);
         let x = solve("1.3 + 2.5 * 3.1");
         if x.is_err() {
             panic!("{}", x.unwrap_err());
@@ -214,9 +283,17 @@ mod test {
         assert_eq!(x.unwrap().as_f64(), 9.05);
 
         let mut defs = Definitions::new();
-        defs.insert("x".to_string(), Number::new(4.5));
+        defs.insert("x".to_string(), Number::new(16));
 
-        let solved3 = solve_with_definitions("(x + 4.5) / 3.0", &defs);
-        assert_eq!(solved3.unwrap().as_f64(), 3.0);
+
+        let solved3 = solve_defs("(x + 4) / 5.0", Some(&defs), None);
+        assert_eq!(solved3.unwrap().as_f64(), 4.0);
+
+        let funcs = Functions::default();
+        let solved4 = solve_defs("log(2, x)", Some(&defs), Some(&funcs));
+        if solved4.is_err() {
+            panic!("{}", solved4.unwrap_err());
+        }
+        assert_eq!(solved4.unwrap().as_f64(), 4.0);
     }
 }

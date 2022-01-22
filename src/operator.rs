@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use crate::{Error, Number};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Operator {
+pub(crate) enum Operator {
     LeftParen,  // (
     RightParen, // )
     Add,        // +

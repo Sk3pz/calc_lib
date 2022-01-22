@@ -160,6 +160,15 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                 last_was_ident = true;
                 negative = false;
             }
+            TokenType::Function(_, _) => {
+                if last_was_ident {
+                    return Err(Error::new("Invalid Expression: Two identifiers or numbers found in a row", token.pos.clone()));
+                }
+                postfix.push(ShuntedStackItem::new_operand(token.token_type.clone()));
+                last_op = None;
+                last_was_ident = true;
+                negative = false;
+            }
             TokenType::Operator(op) => {
                 match op {
                     Operator::LeftParen => {

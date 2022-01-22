@@ -1,4 +1,4 @@
-use crate::{Definitions, Error, Number};
+use crate::{Definitions, Error, Functions, Number};
 use crate::lex::{TokenType};
 use crate::postfix::{ShuntedStack, ShuntedStackItem};
 
@@ -43,20 +43,64 @@ pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
     }
 }
 
-pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: &Definitions) -> Result<Number, Error> {
-    for x in 0..input.len() {
-        let item = input.peek_at(x).unwrap();
-        if item.is_operand() {
-            let operand = item.get_operand().unwrap();
-            match operand {
-                TokenType::Identifier(ident) => {
-                    let value = definitions.get(ident);
-                    if value.is_none() {
-                        return Err(Error::new_gen(format!("variable {} is not defined.", ident)));
+pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<Number, Error> {
+    if definitions.is_some() {
+        let definitions = definitions.unwrap();
+        for x in 0..input.len() {
+            let item = input.peek_at(x).unwrap();
+            if item.is_operand() {
+                let operand = item.get_operand().unwrap();
+                match operand {
+                    TokenType::Identifier(ident) => {
+                        let value = definitions.get(ident);
+                        if value.is_none() {
+                            return Err(Error::new_gen(format!("variable {} is not defined.", ident)));
+                        }
+                        input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(value.unwrap().clone())));
                     }
-                    input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(value.unwrap().clone())));
+                    _ => {}
                 }
-                _ => {}
+            }
+        }
+    }
+    if functions.is_some() {
+        let functions = functions.unwrap();
+        for x in 0..input.len() {
+            let item = input.peek_at(x).unwrap();
+            if item.is_operand() {
+                let operand = item.get_operand().unwrap();
+                match operand {
+                    TokenType::Function(ident, args) => {
+                        let value = functions.get(ident);
+                        if value.is_none() {
+                            return Err(Error::new_gen(format!("function {} is not defined.", ident)));
+                        }
+                        // replace args with numbers
+                        let mut pass_args = Vec::new();
+                        for a in args {
+                            if let TokenType::Num(n) = a {
+                                pass_args.push(n.clone());
+                            } else {
+                                if definitions.is_some() {
+                                    if let TokenType::Identifier(s) = a {
+                                        let value = definitions.unwrap().get(s);
+                                        if value.is_none() {
+                                            return Err(Error::new_gen(format!("variable {} is not defined.", s)));
+                                        }
+                                        pass_args.push(value.unwrap().clone());
+                                    } else {
+                                        return Err(Error::new_gen(format!("Invalid argument found for function {}", ident)));
+                                    }
+                                } else {
+                                    return Err(Error::new_gen(format!("Invalid argument found for function {}", ident)));
+                                }
+                            }
+                        }
+                        let val = value.unwrap()(pass_args)?;
+                        input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(val)));
+                    }
+                    _ => {}
+                }
             }
         }
     }

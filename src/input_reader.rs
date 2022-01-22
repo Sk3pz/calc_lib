@@ -40,5 +40,4 @@ impl InputReader {
     pub(crate) fn peek(&self) -> Option<char> {
         self.peek_at(0)
     }
-
 }

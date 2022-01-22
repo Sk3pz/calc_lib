@@ -4,10 +4,11 @@ use crate::{Error, InputPos, Number};
 use crate::operator::Operator;
 
 #[derive(Debug, Clone)]
-pub enum TokenType {
+pub(crate) enum TokenType {
     Operator(Operator),
     Identifier(String),
     Num(Number),
+    Function(String, Vec<TokenType>),
 }
 
 impl Display for TokenType {
@@ -16,6 +17,7 @@ impl Display for TokenType {
             TokenType::Operator(o) => write!(f, "Operator:{}", o),
             TokenType::Identifier(ref s) => write!(f, "Ident:{}", s),
             TokenType::Num(n) => write!(f, "Number:{}", n),
+            TokenType::Function(s, _) => write!(f, "Function:{}(...)", s),
         }
     }
 }
@@ -41,13 +43,45 @@ impl Display for Token {
     }
 }
 
-fn lex_ident(input: &mut InputReader) -> Result<Token, Error> {
+fn lex_ident(input: &mut InputReader, allow_idents: bool) -> Result<Token, Error> {
     let mut ident = String::new();
     let start = input.pos();
     while let Some(c) = input.peek() {
         if c.is_alphanumeric() {
             ident.push(c);
             input.consume();
+        } else if c == '(' {
+            input.consume();
+            let mut params = Vec::new();
+            while let Some(c) = input.peek() {
+                if c == ' ' || c == '\n' || c == '\t' || c == '\r' {
+                    input.consume();
+                    continue;
+                }
+                if c == ')' {
+                    input.consume();
+                    break;
+                }
+
+                params.push(next_token(input, allow_idents)?.token_type);
+                while let Some(c2) = input.peek() {
+                    if c2 == ' ' || c == '\n' || c == '\t' || c == '\r' {
+                        input.consume();
+                        continue;
+                    }
+                    if c2 == ')' {
+                        break;
+                    }
+                    if c2 == ',' {
+                        input.consume();
+                        break;
+                    } else {
+                        return Err(Error::new("Expected ',' or ')'", input.pos()));
+                    }
+                }
+            }
+
+            return Ok(Token::new(TokenType::Function(ident, params), start));
         } else {
             break;
         }
@@ -92,48 +126,64 @@ fn lex_number(input: &mut InputReader) -> Result<Token, Error> {
     }
 }
 
+pub(crate) fn next_token(input: &mut InputReader, allow_idents: bool) -> Result<Token, Error> {
+    let next = input.peek();
+    if next.is_none() {
+        return Err(Error::new_gen("Reached end of input when expecting a token"));
+    }
+    let c = next.unwrap();
+    Ok(match input.peek().unwrap() {
+        '+' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::Add), input.pos())
+        }
+        '-' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::Sub), input.pos())
+        }
+        '*' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::Mul), input.pos())
+        }
+        '/' | '÷' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::Div), input.pos())
+        }
+        '%' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::Mod), input.pos())
+        }
+        '^' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::Pow), input.pos())
+        }
+        '=' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::Assign), input.pos())
+        }
+        '(' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::LeftParen), input.pos())
+        }
+        ')' => {
+            input.consume();
+            Token::new(TokenType::Operator(Operator::RightParen), input.pos())
+        }
+        _ if (c.is_alphabetic() || c == '_') && allow_idents => lex_ident(input, allow_idents)?,
+        _ if c.is_numeric() => lex_number(input)?,
+        _ => {
+            return Err(Error::new(
+                format!("Unexpected character: {}", c),
+                input.pos(),
+            ));
+        }
+    })
+}
+
 pub(crate) fn lex(input: &mut InputReader, allow_idents: bool) -> Result<Vec<Token>, Error> {
     let mut tokens = Vec::new();
     while let Some(c) = input.peek() {
         match c {
-            '+' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::Add), input.pos()));
-                input.consume();
-            }
-            '-' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::Sub), input.pos()));
-                input.consume();
-            }
-            '*' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::Mul), input.pos()));
-                input.consume();
-            }
-            '/' | '÷' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::Div), input.pos()));
-                input.consume();
-            }
-            '%' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::Mod), input.pos()));
-                input.consume();
-            }
-            '^' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::Pow), input.pos()));
-                input.consume();
-            }
-            '=' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::Assign), input.pos()));
-                input.consume();
-            }
-            '(' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::LeftParen), input.pos()));
-                input.consume();
-            }
-            ')' => {
-                tokens.push(Token::new(TokenType::Operator(Operator::RightParen), input.pos()));
-                input.consume();
-            }
-            _ if (c.is_alphabetic() || c == '_') && allow_idents => tokens.push(lex_ident(input)?),
-            _ if c.is_numeric() => tokens.push(lex_number(input)?),
             ' ' | '\t' | '\r' => {
                 input.consume();
             }
@@ -142,12 +192,7 @@ pub(crate) fn lex(input: &mut InputReader, allow_idents: bool) -> Result<Vec<Tok
                 input.pos().ch = 0;
                 input.consume();
             }
-            _ => {
-                return Err(Error::new(
-                    format!("Unexpected character: {}", c),
-                    input.pos(),
-                ));
-            }
+            _ => tokens.push(next_token(input, allow_idents)?),
         }
     }
 
