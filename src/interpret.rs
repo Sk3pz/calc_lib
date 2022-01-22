@@ -1,10 +1,10 @@
-use crate::{Definitions, Error, Functions, Number};
+use crate::{Definitions, Error, ErrorType, Functions, Number};
 use crate::lex::{TokenType};
 use crate::postfix::{ShuntedStack, ShuntedStackItem};
 
 pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
     if input.is_empty() {
-        return Err(Error::new_gen("Invalid expression: input is empty"));
+        return Err(Error::new_gen(ErrorType::EmptyInput));
     }
     // loop through the stack until an operator is found, pushing the operands onto the operand stack
     // in the process
@@ -23,23 +23,23 @@ pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
                             // o1 is of type Number and o2 is of type Number
                             TokenType::Num(op.apply(n1.clone(), n2.clone())?)
                         }
-                        _ => return Err(Error::new_gen("Invalid operand")),
+                        _ => return Err(Error::new_gen(ErrorType::InvalidOperand { op: operand_1.to_string() })),
                     }
                 }
-                _ => return Err(Error::new_gen("Invalid operand"))
+                _ => return Err(Error::new_gen(ErrorType::InvalidOperand { op: operand_1.to_string() }))
             };
             operand_stack.push(r);
         }
     }
 
     if operand_stack.len() != 1 {
-        return Err(Error::new_gen("Invalid expression"));
+        return Err(Error::new_gen(ErrorType::InvalidExpression { reason: "Invalid operand stack ending size".to_string() }));
     }
 
     let result = operand_stack.pop().unwrap();
     match result {
         TokenType::Num(n) => Ok(n.clone()),
-        _ => Err(Error::new_gen("Invalid expression"))
+        _ => Err(Error::new_gen(ErrorType::InvalidExpression { reason: format!("Invalid interpreted value: {}", result) }))
     }
 }
 
@@ -54,7 +54,7 @@ pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: 
                     TokenType::Identifier(ident) => {
                         let value = definitions.get(ident);
                         if value.is_none() {
-                            return Err(Error::new_gen(format!("variable {} is not defined.", ident)));
+                            return Err(Error::new_gen(ErrorType::UndefinedVariable { name: ident.to_string() }));
                         }
                         input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(value.unwrap().clone())));
                     }
@@ -73,7 +73,7 @@ pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: 
                     TokenType::Function(ident, args) => {
                         let value = functions.get(ident);
                         if value.is_none() {
-                            return Err(Error::new_gen(format!("function {} is not defined.", ident)));
+                            return Err(Error::new_gen(ErrorType::UndefinedFunction { name: ident.to_string() }));
                         }
                         // replace args with numbers
                         let mut pass_args = Vec::new();
@@ -85,14 +85,14 @@ pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: 
                                     if let TokenType::Identifier(s) = a {
                                         let value = definitions.unwrap().get(s);
                                         if value.is_none() {
-                                            return Err(Error::new_gen(format!("variable {} is not defined.", s)));
+                                            return Err(Error::new_gen(ErrorType::UndefinedVariable { name: s.to_string() }));
                                         }
                                         pass_args.push(value.unwrap().clone());
                                     } else {
-                                        return Err(Error::new_gen(format!("Invalid argument found for function {}", ident)));
+                                        return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string() }));
                                     }
                                 } else {
-                                    return Err(Error::new_gen(format!("Invalid argument found for function {}", ident)));
+                                    return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string() }));
                                 }
                             }
                         }

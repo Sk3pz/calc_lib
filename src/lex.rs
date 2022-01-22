@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use crate::input_reader::InputReader;
-use crate::{Error, InputPos, Number};
+use crate::{Error, ErrorType, InputPos, Number};
 use crate::operator::Operator;
 
 #[derive(Debug, Clone)]
@@ -76,7 +76,7 @@ fn lex_ident(input: &mut InputReader, allow_idents: bool) -> Result<Token, Error
                         input.consume();
                         break;
                     } else {
-                        return Err(Error::new("Expected ',' or ')'", input.pos()));
+                        return Err(Error::new(ErrorType::Expected { expected: ", or )".to_string(), found: c2.to_string()}, input.pos()));
                     }
                 }
             }
@@ -100,7 +100,7 @@ fn lex_number(input: &mut InputReader) -> Result<Token, Error> {
         } else if c == '.' {
             if decimal {
                 return Err(Error::new(
-                    "Invalid number",
+                    ErrorType::InvalidNumber { found: number },
                     start,
                 ));
             }
@@ -114,13 +114,13 @@ fn lex_number(input: &mut InputReader) -> Result<Token, Error> {
     if decimal {
         let f = number.parse::<f64>();
         if f.is_err() {
-            return Err(Error::new_gen(format!("Tried to parse an invalid number: {}", number)));
+            return Err(Error::new_gen(ErrorType::InvalidNumber { found: number }));
         }
         Ok(Token::new(TokenType::Num(Number::new(f.unwrap())), start))
     } else {
         let n = number.parse::<i128>();
         if n.is_err() {
-            return Err(Error::new_gen(format!("Tried to parse an invalid number: {}", number)));
+            return Err(Error::new_gen(ErrorType::InvalidNumber { found: number }));
         }
         Ok(Token::new(TokenType::Num(Number::new(n.unwrap() as f64)), start))
     }
@@ -129,7 +129,7 @@ fn lex_number(input: &mut InputReader) -> Result<Token, Error> {
 pub(crate) fn next_token(input: &mut InputReader, allow_idents: bool) -> Result<Token, Error> {
     let next = input.peek();
     if next.is_none() {
-        return Err(Error::new_gen("Reached end of input when expecting a token"));
+        return Err(Error::new_gen(ErrorType::UnexpectedEOF));
     }
     let c = next.unwrap();
     Ok(match input.peek().unwrap() {
@@ -173,7 +173,7 @@ pub(crate) fn next_token(input: &mut InputReader, allow_idents: bool) -> Result<
         _ if c.is_numeric() => lex_number(input)?,
         _ => {
             return Err(Error::new(
-                format!("Unexpected character: {}", c),
+                ErrorType::InvalidCharacter { c },
                 input.pos(),
             ));
         }

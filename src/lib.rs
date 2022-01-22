@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use better_term::{Color, Style};
 use crate::input_reader::InputReader;
 use crate::interpret::{interpret, interpret_with_definitions};
 
@@ -62,36 +61,83 @@ impl Display for InputPos {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ErrorType {
+    DivByZero,
+    NegativeExponent,
+    InvalidCharacter { c: char },
+    InvalidNumber { found: String },
+    Expected { expected: String, found: String },
+    UnexpectedEOF,
+    EmptyInput,
+    InvalidOperand { op: String },
+    InvalidOperator { op: String },
+    InvalidExpression { reason: String },
+    UndefinedVariable { name: String },
+    UndefinedFunction { name: String },
+    InvalidArgumentCount { name: String, expected: usize, got: usize },
+    InvalidArgument { name: String },
+    InvalidLeadingOperator { op: String },
+    MissingOperator,
+    MismatchedParentheses { found: char, missing: char },
+    Other(String),
+}
+
+impl Display for ErrorType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorType::DivByZero => write!(f, "Can't divide by zero"),
+            ErrorType::NegativeExponent => write!(f, "Can't raise a value to a negative power"),
+            ErrorType::InvalidCharacter { c } => write!(f, "Invalid character: {}", c),
+            ErrorType::InvalidNumber { found } => write!(f, "Invalid number: {}", found),
+            ErrorType::Expected { expected, found } => write!(f, "Expected '{}', found '{}'", expected, found),
+            ErrorType::UnexpectedEOF => write!(f, "Unexpected end of input"),
+            ErrorType::EmptyInput => write!(f, "Empty input"),
+            ErrorType::InvalidOperand { op } => write!(f, "Invalid operand: {}", op),
+            ErrorType::InvalidOperator { op } => write!(f, "Invalid operator: {}", op),
+            ErrorType::InvalidExpression { reason } => write!(f, "Invalid expression: {}", reason),
+            ErrorType::UndefinedVariable { name } => write!(f, "Undefined variable: {}", name),
+            ErrorType::UndefinedFunction { name } => write!(f, "Undefined function: {}", name),
+            ErrorType::InvalidArgumentCount { name, expected, got } => write!(f, "Invalid argument count for function '{}': expected {}, got {}", name, expected, got),
+            ErrorType::InvalidArgument { name } => write!(f, "Invalid argument for function '{}'", name),
+            ErrorType::InvalidLeadingOperator { op } => write!(f, "Invalid leading operator: {}", op),
+            ErrorType::MissingOperator => write!(f, "Missing operator"),
+            ErrorType::MismatchedParentheses { found, missing } => write!(f, "Mismatched parentheses: found '{}', missing '{}'", found, missing),
+            ErrorType::Other(s) => write!(f, "{}", s),
+        }
+    }
+}
+
 /// Stores errors from the parser if any occur.
 /// error: The message of the error. Accessed with `.get_error()`
 /// pos: The position of the error. Accessed with `.get_pos()`
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Error {
-    error: String,
+    error: ErrorType,
     pos: Option<InputPos>,
 }
 
 impl Error {
-    pub(crate) fn new<S: Into<String>>(msg: S, pos: InputPos) -> Self {
+    pub(crate) fn new(etype: ErrorType, pos: InputPos) -> Self {
         Self {
-            error: msg.into(),
+            error: etype,
             pos: Some(pos),
         }
     }
 
-    pub(crate) fn new_gen<S: Into<String>>(msg: S) -> Self {
+    pub(crate) fn new_gen(etype: ErrorType) -> Self {
         Self {
-            error: msg.into(),
+            error: etype,
             pos: None,
         }
     }
 
-    pub fn create<S: Into<String>>(msg: S) -> Self {
-        Self::new_gen(msg.into())
+    pub fn create(etype: ErrorType) -> Self {
+        Self::new_gen(etype)
     }
 
     /// Returns the error message.
-    pub fn get_error(&self) -> &str {
+    pub fn get_error(&self) -> &ErrorType {
         &self.error
     }
 
@@ -105,17 +151,10 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let strong_red = Style::default().fg(Color::Red).bold();
-        let strong_white = Style::default().fg(Color::BrightWhite).bold();
-        let reset = Style::reset();
         if self.pos.is_some() {
-            write!(f, "{}error: {}{}{}\n  {}-> {}{}",
-                   strong_red, strong_white, self.error, reset,
-                   Color::BrightBlue, Color::BrightBlack, self.pos.as_ref().unwrap()
-            )
+            write!(f, "Error: {} at {}", self.error, self.pos.as_ref().unwrap())
         } else {
-            write!(f, "{}error: {}{}{}",
-                   strong_red, strong_white, self.error, reset)
+            write!(f, "Error: {}", self.error)
         }
     }
 }
@@ -188,49 +227,49 @@ impl Default for Functions<'_> {
         let mut funcs = Functions::new();
         funcs.register("log", |args| {
             if args.len() != 2 {
-                return Err(Error::create(format!("log takes exactly 2 arguments, {} given", args.len())));
+                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "log".to_string(), expected: 2, got: args.len() }));
             }
             Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
         });
 
         funcs.register("sqrt", |args| {
             if args.len() != 1 {
-                return Err(Error::create(format!("sqrt takes exactly 1 argument, {} given", args.len())));
+                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "sqrt".to_string(), expected: 1, got: args.len() }));
             }
             Ok(Number::new(args[0].as_f64().sqrt()))
         });
 
         funcs.register("sin", |args| {
             if args.len() != 1 {
-                return Err(Error::create(format!("sin takes exactly 1 argument, {} given", args.len())));
+                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "sin".to_string(), expected: 1, got: args.len() }));
             }
             Ok(Number::new(args[0].as_f64().sin()))
         });
 
         funcs.register("cos", |args| {
             if args.len() != 1 {
-                return Err(Error::create(format!("cos takes exactly 1 argument, {} given", args.len())));
+                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "cos".to_string(), expected: 1, got: args.len() }));
             }
             Ok(Number::new(args[0].as_f64().cos()))
         });
 
         funcs.register("tan", |args| {
             if args.len() != 1 {
-                return Err(Error::create(format!("tan takes exactly 1 argument, {} given", args.len())));
+                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "tan".to_string(), expected: 1, got: args.len() }));
             }
             Ok(Number::new(args[0].as_f64().tan()))
         });
 
         funcs.register("atan", |args| {
             if args.len() != 1 {
-                return Err(Error::create(format!("atan takes exactly 1 argument, {} given", args.len())));
+                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "atan".to_string(), expected: 1, got: args.len() }));
             }
             Ok(Number::new(args[0].as_f64().atan()))
         });
 
         funcs.register("atan2", |args| {
             if args.len() != 2 {
-                return Err(Error::create(format!("atan2 takes 2 arguments, {} given", args.len())));
+                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "atan2".to_string(), expected: 2, got: args.len() }));
             }
             Ok(Number::new(args[0].as_f64().atan2(args[1].as_f64())))
         });
@@ -277,15 +316,16 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 ///
 /// # Usage with functions:
 /// ```
-/// use calc_lib::{Definitions, Functions, Number, Error, solve_defs};
+/// use calc_lib::{Definitions, Functions, Number, Error, solve_defs, ErrorType};
 ///
 /// let mut defs = Definitions::new();
 /// defs.insert("x".to_string(), Number::new(3));
 ///
 /// let mut funcs = Functions::new();
+/// // this shows the definition of the log function, which is already implemented in `Functions::default();`
 /// funcs.register("log", |args| {
 ///     if args.len() != 2 {
-///         return Err(Error::create(format!("log takes exactly 2 arguments, {} given", args.len())));
+///         return Err(Error::create(ErrorType::InvalidArgumentCount { name: "log".to_string(), expected: 2, got: args.len() }));
 ///     }
 ///     Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
 ///  });

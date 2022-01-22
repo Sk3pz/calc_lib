@@ -10,4 +10,3 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-better_term = "1.0.4"

@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::{Error, Number};
+use crate::{Error, ErrorType, Number};
 use crate::lex::{Token, TokenType};
 use crate::operator::Operator;
 
@@ -111,7 +111,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
     let mut op_stack: Vec<Operator> = Vec::new();
 
     if tokens.is_empty() {
-        return Err(Error::new_gen("Empty expression"));
+        return Err(Error::new_gen(ErrorType::EmptyInput));
     }
 
     let mut last_op: Option<Operator> = None;
@@ -126,7 +126,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
             }
             Operator::LeftParen => {}
             _ => {
-                return Err(Error::new(format!("Invalid leading operator: {}", op), first.pos.clone()));
+                return Err(Error::new(ErrorType::InvalidLeadingOperator { op: op.to_string() }, first.pos.clone()));
             }
         }
     }
@@ -135,7 +135,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
         match &token.token_type {
             TokenType::Num(_) => {
                 if last_was_ident {
-                    return Err(Error::new("Invalid Expression: Two identifiers or numbers found in a row", token.pos.clone()));
+                    return Err(Error::new(ErrorType::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() }, token.pos.clone()));
                 }
                 let mut t = token.clone();
                 if negative {
@@ -153,7 +153,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
             }
             TokenType::Identifier(_) => {
                 if last_was_ident {
-                    return Err(Error::new("Invalid Expression: Two identifiers or numbers found in a row", token.pos.clone()));
+                    return Err(Error::new(ErrorType::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() }, token.pos.clone()));
                 }
                 postfix.push(ShuntedStackItem::new_operand(token.token_type.clone()));
                 last_op = None;
@@ -162,7 +162,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
             }
             TokenType::Function(_, _) => {
                 if last_was_ident {
-                    return Err(Error::new("Invalid Expression: Two identifiers or numbers found in a row", token.pos.clone()));
+                    return Err(Error::new(ErrorType::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() }, token.pos.clone()));
                 }
                 postfix.push(ShuntedStackItem::new_operand(token.token_type.clone()));
                 last_op = None;
@@ -174,7 +174,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                     Operator::LeftParen => {
                         op_stack.push(op.clone());
                         if last_was_ident {
-                            return Err(Error::new("Invalid Expression: missing operator", token.pos.clone()));
+                            return Err(Error::new(ErrorType::MissingOperator, token.pos.clone()));
                         }
                         last_op = None;
                         last_was_ident = false;
@@ -192,7 +192,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                         }
 
                         if !found {
-                            return Err(Error::new("Found closing ')' without matching '('", token.pos.clone()));
+                            return Err(Error::new(ErrorType::MismatchedParentheses { found: ')', missing: '(' }, token.pos.clone()));
                         }
 
                         last_op = Some(op.clone());
@@ -207,7 +207,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                                 continue;
                             } else if last_op.as_ref().unwrap().clone() != Operator::LeftParen
                                 && last_op.as_ref().unwrap().clone() != Operator::RightParen {
-                                return Err(Error::new(format!("Invalid operator: {}", op), token.pos.clone()));
+                                return Err(Error::new(ErrorType::InvalidOperator { op: op.to_string() }, token.pos.clone()));
                             }
                         }
 
@@ -234,7 +234,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
 
     while let Some(op) = op_stack.pop() {
         if op == Operator::LeftParen {
-            return Err(Error::new_gen("Found '(' without matching ')'"));
+            return Err(Error::new_gen(ErrorType::MismatchedParentheses { found: '(', missing: ')' }));
         }
         postfix.push(ShuntedStackItem::new_operator(op));
     }
