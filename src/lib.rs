@@ -200,6 +200,41 @@ impl Default for Functions<'_> {
             Ok(Number::new(args[0].as_f64().sqrt()))
         });
 
+        funcs.register("sin", |args| {
+            if args.len() != 1 {
+                return Err(Error::create(format!("sin takes exactly 1 argument, {} given", args.len())));
+            }
+            Ok(Number::new(args[0].as_f64().sin()))
+        });
+
+        funcs.register("cos", |args| {
+            if args.len() != 1 {
+                return Err(Error::create(format!("cos takes exactly 1 argument, {} given", args.len())));
+            }
+            Ok(Number::new(args[0].as_f64().cos()))
+        });
+
+        funcs.register("tan", |args| {
+            if args.len() != 1 {
+                return Err(Error::create(format!("tan takes exactly 1 argument, {} given", args.len())));
+            }
+            Ok(Number::new(args[0].as_f64().tan()))
+        });
+
+        funcs.register("atan", |args| {
+            if args.len() != 1 {
+                return Err(Error::create(format!("atan takes exactly 1 argument, {} given", args.len())));
+            }
+            Ok(Number::new(args[0].as_f64().atan()))
+        });
+
+        funcs.register("atan2", |args| {
+            if args.len() != 2 {
+                return Err(Error::create(format!("atan2 takes 2 arguments, {} given", args.len())));
+            }
+            Ok(Number::new(args[0].as_f64().atan2(args[1].as_f64())))
+        });
+
         funcs
     }
 }

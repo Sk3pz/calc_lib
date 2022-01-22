@@ -25,6 +25,16 @@ This works best when you have an equation in string form, usually from user inpu
 
 * Error system rework to allow for errors that the user can handle (represent errors as an enum instead of a String)
 
+### Default functions
+accessed with `Functions::default();`
+* `log(base, value)`
+* `sqrt(value)`
+* `sin(value)`
+* `cos(value)`
+* `tan(value)`
+* `atan(value)`
+* `atan2(value)`
+
 # Examples:
 Integer equations:
 ```rust
