@@ -33,7 +33,7 @@ accessed with `Functions::default();`
 * `cos(value)`
 * `tan(value)`
 * `atan(value)`
-* `atan2(value other)`
+* `atan2(value, other)`
 
 # Examples:
 Integer equations:
