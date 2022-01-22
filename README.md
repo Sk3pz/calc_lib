@@ -7,10 +7,10 @@ This works best when you have an equation in string form, usually from user inpu
 
 * Basic algebraic operations
 * Proper order of operations
-* Optional defined variables (definitions not handled by this library)
+* Optional defined variables
 * Integer operations and floating point operations (either/or)
 * Functions such as log, sin, cos, tan, etc.
-* Optional defined functions (planned to be both infix and normal)
+* Optional defined functions
 
 ### Planned Features
 
