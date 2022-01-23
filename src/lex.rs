@@ -129,7 +129,7 @@ fn lex_number(input: &mut InputReader) -> Result<Token, Error> {
 pub(crate) fn next_token(input: &mut InputReader, allow_idents: bool) -> Result<Token, Error> {
     let next = input.peek();
     if next.is_none() {
-        return Err(Error::new_gen(ErrorType::UnexpectedEOF));
+        return Err(Error::new_gen(ErrorType::UnexpectedEOI));
     }
     let c = next.unwrap();
     Ok(match input.peek().unwrap() {
@@ -181,6 +181,10 @@ pub(crate) fn next_token(input: &mut InputReader, allow_idents: bool) -> Result<
 }
 
 pub(crate) fn lex(input: &mut InputReader, allow_idents: bool) -> Result<Vec<Token>, Error> {
+    if input.is_empty() {
+        return Ok(vec![Token::new(TokenType::Num(Number::new(0.0)), input.pos())]);
+    }
+
     let mut tokens = Vec::new();
     while let Some(c) = input.peek() {
         match c {

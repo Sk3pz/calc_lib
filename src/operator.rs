@@ -26,6 +26,13 @@ impl Operator {
         }
     }
 
+    pub(crate) fn can_apply(&self) -> bool {
+        match self {
+            Operator::LeftParen | Operator::RightParen | Operator::Assign => false,
+            _ => true,
+        }
+    }
+
     pub(crate) fn apply(&self, left: Number, right: Number) -> Result<Number, Error> {
         Ok(Number::new(match self {
             Operator::Add => left.as_f64() + right.as_f64(),

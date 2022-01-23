@@ -3,9 +3,6 @@ use crate::lex::{TokenType};
 use crate::postfix::{ShuntedStack, ShuntedStackItem};
 
 pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
-    if input.is_empty() {
-        return Err(Error::new_gen(ErrorType::EmptyInput));
-    }
     // loop through the stack until an operator is found, pushing the operands onto the operand stack
     // in the process
     let mut operand_stack = Vec::new();
@@ -14,6 +11,9 @@ pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
             operand_stack.push(item.get_operand().unwrap().clone());
         } else {
             let op = item.get_operator().unwrap();
+            if !op.can_apply() {
+                return Err(Error::new_gen(ErrorType::InvalidOperator { op: op.to_string() }));
+            }
             let operand_1 = operand_stack.pop().unwrap();
             let operand_2 = operand_stack.pop().unwrap();
             let r = match operand_2 {
@@ -89,10 +89,10 @@ pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: 
                                         }
                                         pass_args.push(value.unwrap().clone());
                                     } else {
-                                        return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string() }));
+                                        return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
                                     }
                                 } else {
-                                    return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string() }));
+                                    return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
                                 }
                             }
                         }

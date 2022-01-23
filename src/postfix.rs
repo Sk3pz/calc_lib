@@ -77,10 +77,6 @@ impl ShuntedStack {
         self.items[index] = item;
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
     pub(crate) fn len(&self) -> usize {
         self.items.len()
     }
@@ -109,10 +105,6 @@ impl Iterator for ShuntedStack {
 pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Error> {
     let mut postfix = ShuntedStack::new();
     let mut op_stack: Vec<Operator> = Vec::new();
-
-    if tokens.is_empty() {
-        return Err(Error::new_gen(ErrorType::EmptyInput));
-    }
 
     let mut last_op: Option<Operator> = None;
     let mut negative = false;

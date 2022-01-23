@@ -40,4 +40,6 @@ impl InputReader {
     pub(crate) fn peek(&self) -> Option<char> {
         self.peek_at(0)
     }
+
+    pub(crate) fn is_empty(&self) -> bool { self.stream.is_empty() }
 }

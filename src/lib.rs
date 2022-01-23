@@ -9,23 +9,6 @@ pub(crate) mod postfix;
 pub(crate) mod interpret;
 pub(crate) mod operator;
 
-/// rounds a f64 to a specific decimal place
-/// # Arguments
-/// * value - the value to round
-/// * places - the number of decimal places to round to
-/// # Returns the rounded value
-///
-/// # Example
-/// ```
-/// use calc_lib::round;
-///
-/// assert_eq!(round(1.2345, 2), 1.23);
-/// ```
-pub fn round(value: f64, place: usize) -> f64 {
-    let round_by = 10.0f64.powi(place as i32) as f64;
-    (value * round_by).round() / round_by
-}
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) struct InputPos {
     line: usize,
@@ -67,23 +50,59 @@ impl Display for InputPos {
 /// printed out if custom handling of errors is not needed.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ErrorType {
+    /// An error in which the input attempts a division by zero, which is undefined
     DivByZero,
+    /// An error in which the input attempts to raise a number to a negative power, which is undefined
     NegativeExponent,
+    /// An error in which the input contains an invalid character that can not be parsed
+    /// c is the invalid character
     InvalidCharacter { c: char },
+    /// An error in which the input contains an invalid number (i.e. 2 decimal points)
+    /// found is the number in string form (it can't be parsed)
     InvalidNumber { found: String },
+    /// An error in which the parser expected something but got something else (invalid input)
+    /// expected is the expected input
+    /// found is what was found
     Expected { expected: String, found: String },
-    UnexpectedEOF,
-    EmptyInput,
+    /// when the parser reaches an unexpected End Of Input when it is still expecting more input
+    UnexpectedEOI,
+    /// When the interpreter finds an invalid operand, such as a variable identifier when none are defined
+    /// op: the invalid operand
     InvalidOperand { op: String },
+    /// When the interpreter finds an invalid operator, such as a '=' while solving
+    /// op: the invalid operator
     InvalidOperator { op: String },
+    /// When the interpreter has an invalid output, such as multiple values or a remaining operator
+    /// reason: the error message
     InvalidExpression { reason: String },
+    /// When interpreting with definitions finds an undefined variable
+    /// name: the name of the undefined variable
     UndefinedVariable { name: String },
+    /// When interpreting with definitions finds an undefined function
+    /// name: the name of the undefined function
     UndefinedFunction { name: String },
+    /// When a function is called with the wrong number of arguments
+    /// name: the name of the function
+    /// expected: the number of arguments expected
+    /// got: the number of arguments received
     InvalidArgumentCount { name: String, expected: usize, got: usize },
-    InvalidArgument { name: String },
+    /// When something other than a number or variable is passed to a function
+    /// name: the name of the function
+    /// value: the value that was passed
+    InvalidArgument { name: String, value: String },
+    /// When the interpreter finds an operator after another operator that should not be there
+    /// op: the operator that was found
     InvalidLeadingOperator { op: String },
+    /// When the interpreter expects an operator (i.e. after a number) but gets something else
     MissingOperator,
+    /// When there is an incomplete pair of parentheses (i.e. open with no close or vice versa)
+    /// found: the parenthesis that was found (either '(' or ')')
+    /// missing: the parenthesis that was expected (either ')' or '(')
     MismatchedParentheses { found: char, missing: char },
+    /// Custom error messages
+    /// contains a String of the error message
+    /// this is not used by this program and is only used for custom error messages by the user
+    ///
     Other(String),
 }
 
@@ -95,15 +114,14 @@ impl Display for ErrorType {
             ErrorType::InvalidCharacter { c } => write!(f, "Invalid character: {}", c),
             ErrorType::InvalidNumber { found } => write!(f, "Invalid number: {}", found),
             ErrorType::Expected { expected, found } => write!(f, "Expected '{}', found '{}'", expected, found),
-            ErrorType::UnexpectedEOF => write!(f, "Unexpected end of input"),
-            ErrorType::EmptyInput => write!(f, "Empty input"),
+            ErrorType::UnexpectedEOI => write!(f, "Unexpected end of input"),
             ErrorType::InvalidOperand { op } => write!(f, "Invalid operand: {}", op),
             ErrorType::InvalidOperator { op } => write!(f, "Invalid operator: {}", op),
             ErrorType::InvalidExpression { reason } => write!(f, "Invalid expression: {}", reason),
             ErrorType::UndefinedVariable { name } => write!(f, "Undefined variable: {}", name),
             ErrorType::UndefinedFunction { name } => write!(f, "Undefined function: {}", name),
             ErrorType::InvalidArgumentCount { name, expected, got } => write!(f, "Invalid argument count for function '{}': expected {}, got {}", name, expected, got),
-            ErrorType::InvalidArgument { name } => write!(f, "Invalid argument for function '{}'", name),
+            ErrorType::InvalidArgument { name, value } => write!(f, "Invalid argument for function '{}': {}", name, value),
             ErrorType::InvalidLeadingOperator { op } => write!(f, "Invalid leading operator: {}", op),
             ErrorType::MissingOperator => write!(f, "Missing operator"),
             ErrorType::MismatchedParentheses { found, missing } => write!(f, "Mismatched parentheses: found '{}', missing '{}'", found, missing),
@@ -355,6 +373,13 @@ mod test {
             panic!("{}", solved.err().unwrap());
         }
         assert_eq!(solved.unwrap().as_i128(), 7);
+
+        let solved2 = solve("");
+        if solved2.is_err() {
+            panic!("{}", solved2.err().unwrap());
+        }
+        assert_eq!(solved2.unwrap().as_i128(), 0);
+
         let x = solve("1.3 + 2.5 * 3.1");
         if x.is_err() {
             panic!("{}", x.unwrap_err());
