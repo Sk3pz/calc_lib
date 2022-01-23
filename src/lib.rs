@@ -131,8 +131,6 @@ impl Display for ErrorType {
 }
 
 /// Stores errors from the parser if any occur.
-/// error: The message of the error. Accessed with `.get_error()`
-/// pos: The position of the error. Accessed with `.get_pos()`
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Error {
     error: ErrorType,
@@ -154,6 +152,7 @@ impl Error {
         }
     }
 
+    /// a way for users to create new errors
     pub fn create(etype: ErrorType) -> Self {
         Self::new_gen(etype)
     }
@@ -187,20 +186,24 @@ pub struct Number {
 }
 
 impl Number {
+    /// Create a new number from a value
     pub fn new<N: Into<f64>>(n: N) -> Self {
         Self {
             value: n.into(),
         }
     }
 
+    /// invert the sign of the number
     pub fn negate(&mut self) {
         self.value = -self.value;
     }
 
+    /// get the value of the number as an f64
     pub fn as_f64(&self) -> f64 {
         self.value
     }
 
+    /// get the value of the number as an i128
     pub fn as_i128(&self) -> i128 {
         self.value.round() as i128
     }
@@ -217,7 +220,32 @@ impl Display for Number {
 }
 
 /// A list of definitions to pass into the crate to be used in the interpreter.
-pub type Definitions = HashMap<String, Number>;
+pub struct Definitions {
+    pub(crate) map: HashMap<String, Number>,
+}
+
+impl Definitions {
+    /// Create a new definition map
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    /// register a new definition to the map
+    pub fn register<S: Into<String>>(&mut self, name: S, value: Number) {
+        self.map.insert(name.into(), value);
+    }
+
+    pub fn exists<S: Into<String>>(&self, ident: S) -> bool {
+        self.map.contains_key(ident.into().as_str())
+    }
+
+    /// Get a definition from the map
+    pub(crate) fn get<S: Into<String>>(&self, ident: S) -> Option<&Number> {
+        self.map.get(ident.into().as_str())
+    }
+}
 
 /// A list of definitions of functions to pass into the interpreter to solve for the variables.
 pub struct Functions<'a> {
@@ -225,17 +253,24 @@ pub struct Functions<'a> {
 }
 
 impl<'a> Functions<'a> {
+    /// Create a new list of functions
     pub fn new() -> Self {
         Self {
             functions: HashMap::new(),
         }
     }
 
+    /// register a function
     pub fn register<S: Into<String>, F: Fn(Vec<Number>) -> Result<Number, Error> + 'a + Copy>(&mut self, name: S, f: F) {
         self.functions.insert(name.into(), Box::new(f));
     }
 
-    pub fn get<S: Into<String>>(&self, ident: S) -> Option<&Box<dyn Fn(Vec<Number>) -> Result<Number, Error> + 'a>> {
+    /// check if a function exists
+    pub fn exists<S: Into<String>>(&self, ident: S) -> bool {
+        self.functions.contains_key(ident.into().as_str())
+    }
+
+    pub(crate) fn get<S: Into<String>>(&self, ident: S) -> Option<&Box<dyn Fn(Vec<Number>) -> Result<Number, Error> + 'a>> {
         let ident = ident.into();
         if !self.functions.contains_key(&ident) {
             return None;
@@ -245,6 +280,8 @@ impl<'a> Functions<'a> {
 }
 
 impl Default for Functions<'_> {
+    /// create a new list of functions with the default functions:
+    /// `log`, `sqrt`, `sin`, `cos`, `tan`
     fn default() -> Self {
         let mut funcs = Functions::new();
         funcs.register("log", |args| {
@@ -282,20 +319,6 @@ impl Default for Functions<'_> {
             Ok(Number::new(args[0].as_f64().tan()))
         });
 
-        funcs.register("atan", |args| {
-            if args.len() != 1 {
-                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "atan".to_string(), expected: 1, got: args.len() }));
-            }
-            Ok(Number::new(args[0].as_f64().atan()))
-        });
-
-        funcs.register("atan2", |args| {
-            if args.len() != 2 {
-                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "atan2".to_string(), expected: 2, got: args.len() }));
-            }
-            Ok(Number::new(args[0].as_f64().atan2(args[1].as_f64())))
-        });
-
         funcs
     }
 }
@@ -330,7 +353,7 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 /// use calc_lib::{Definitions, Number, solve_defs};
 ///
 /// let mut defs = Definitions::new();
-/// defs.insert("x".to_string(), Number::new(3));
+/// defs.register("x", Number::new(3));
 ///
 /// let solved = solve_defs("(x + 3) / 3", Some(&defs), None);
 /// assert_eq!(solved.unwrap().as_i128(), 2);
@@ -341,7 +364,7 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 /// use calc_lib::{Definitions, Functions, Number, Error, solve_defs, ErrorType};
 ///
 /// let mut defs = Definitions::new();
-/// defs.insert("x".to_string(), Number::new(3));
+/// defs.register("x", Number::new(3));
 ///
 /// let mut funcs = Functions::new();
 /// // this shows the definition of the log function, which is already implemented in `Functions::default();`
@@ -387,8 +410,7 @@ mod test {
         assert_eq!(x.unwrap().as_f64(), 9.05);
 
         let mut defs = Definitions::new();
-        defs.insert("x".to_string(), Number::new(16));
-
+        defs.register("x", Number::new(16));
 
         let solved3 = solve_defs("(x + 4) / 5.0", Some(&defs), None);
         assert_eq!(solved3.unwrap().as_f64(), 4.0);
@@ -399,5 +421,11 @@ mod test {
             panic!("{}", solved4.unwrap_err());
         }
         assert_eq!(solved4.unwrap().as_f64(), 4.0);
+
+        let solved5 = solve_defs("log(log(2,4), x)", Some(&defs), Some(&funcs));
+        if solved5.is_err() {
+            panic!("{}", solved5.unwrap_err());
+        }
+        assert_eq!(solved5.unwrap().as_f64(), 4.0);
     }
 }

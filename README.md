@@ -6,7 +6,7 @@ This works best when you have an equation in string form, usually from user inpu
 ### Features
 
 * Basic algebraic operations
-* Proper order of operations
+* Proper order of operations (functions are always evaluated first, then PEMDAS)
 * Optional defined variables
 * Integer operations and floating point operations (either/or)
 * Functions such as log, sin, cos, tan, etc.
@@ -28,8 +28,6 @@ accessed with `Functions::default();`
 * `sin(value)`
 * `cos(value)`
 * `tan(value)`
-* `atan(value)`
-* `atan2(value, other)`
 
 ### Custom Error system:
 
@@ -75,7 +73,7 @@ use calc_lib::{solve_defs, Definitions, Number, Functions};
 fn main() {
     // define x as 16
     let mut defs = Definitions::new();
-    defs.insert("x".to_string(), Number::new(16));
+    defs.register("x", Number::new(16));
   
     // create the functions list
     // Functions::default(); adds functions like log, sin, cos, tan, etc.

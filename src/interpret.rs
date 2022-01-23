@@ -43,6 +43,43 @@ pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
     }
 }
 
+pub(crate) fn interpret_fn(ident: &String, args: &Vec<TokenType>, functions: &Functions, definitions: Option<&Definitions>) -> Result<Number, Error> {
+    let value = functions.get(ident);
+    if value.is_none() {
+        return Err(Error::new_gen(ErrorType::UndefinedFunction { name: ident.to_string() }));
+    }
+
+    // replace args with numbers
+    let mut pass_args = Vec::new();
+    for a in args {
+        if let TokenType::Num(n) = a {
+            pass_args.push(n.clone());
+        } else {
+            match a {
+                TokenType::Identifier(s) => {
+                    if definitions.is_some() {
+                        let value = definitions.unwrap().get(s);
+                        if value.is_none() {
+                            return Err(Error::new_gen(ErrorType::UndefinedVariable { name: s.to_string() }));
+                        }
+                        pass_args.push(value.unwrap().clone());
+                    } else {
+                        return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
+                    }
+                }
+                TokenType::Function(i, a) => {
+                    pass_args.push(interpret_fn(i, a, functions, definitions)?);
+                }
+                _ => {
+                    return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
+                }
+            }
+        }
+    }
+
+    value.unwrap()(pass_args)
+}
+
 pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<Number, Error> {
     if definitions.is_some() {
         let definitions = definitions.unwrap();
@@ -69,37 +106,9 @@ pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: 
             let item = input.peek_at(x).unwrap();
             if item.is_operand() {
                 let operand = item.get_operand().unwrap();
-                match operand {
-                    TokenType::Function(ident, args) => {
-                        let value = functions.get(ident);
-                        if value.is_none() {
-                            return Err(Error::new_gen(ErrorType::UndefinedFunction { name: ident.to_string() }));
-                        }
-                        // replace args with numbers
-                        let mut pass_args = Vec::new();
-                        for a in args {
-                            if let TokenType::Num(n) = a {
-                                pass_args.push(n.clone());
-                            } else {
-                                if definitions.is_some() {
-                                    if let TokenType::Identifier(s) = a {
-                                        let value = definitions.unwrap().get(s);
-                                        if value.is_none() {
-                                            return Err(Error::new_gen(ErrorType::UndefinedVariable { name: s.to_string() }));
-                                        }
-                                        pass_args.push(value.unwrap().clone());
-                                    } else {
-                                        return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
-                                    }
-                                } else {
-                                    return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
-                                }
-                            }
-                        }
-                        let val = value.unwrap()(pass_args)?;
-                        input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(val)));
-                    }
-                    _ => {}
+                if let TokenType::Function(ident, args) = operand {
+                    let val = interpret_fn(ident, args, functions, definitions)?;
+                    input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(val)));
                 }
             }
         }
