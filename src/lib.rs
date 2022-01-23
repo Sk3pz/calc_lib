@@ -50,59 +50,87 @@ impl Display for InputPos {
 /// printed out if custom handling of errors is not needed.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ErrorType {
-    /// An error in which the input attempts a division by zero, which is undefined
+    /// An error in which the input attempts a division by zero, which is undefined.
     DivByZero,
-    /// An error in which the input attempts to raise a number to a negative power, which is undefined
+    /// An error in which the input attempts to raise a number to a negative power, which is undefined.
     NegativeExponent,
-    /// An error in which the input contains an invalid character that can not be parsed
-    /// c is the invalid character
-    InvalidCharacter { c: char },
-    /// An error in which the input contains an invalid number (i.e. 2 decimal points)
-    /// found is the number in string form (it can't be parsed)
-    InvalidNumber { found: String },
-    /// An error in which the parser expected something but got something else (invalid input)
-    /// expected is the expected input
-    /// found is what was found
-    Expected { expected: String, found: String },
-    /// when the parser reaches an unexpected End Of Input when it is still expecting more input
+    /// An error in which the input contains an invalid character that can not be parsed.
+    InvalidCharacter {
+        /// The invalid character
+        c: char
+    },
+    /// An error in which the input contains an invalid number (i.e. 2 decimal points).
+    InvalidNumber {
+        /// The number in string form that couldn't be parsed
+        found: String
+    },
+    /// An error in which the parser expected something but got something else (invalid input).
+    Expected {
+        ///The expected input
+        expected: String,
+        /// What was found
+        found: String
+    },
+    /// when the parser reaches an unexpected End Of Input when it is still expecting more input.
     UnexpectedEOI,
-    /// When the interpreter finds an invalid operand, such as a variable identifier when none are defined
-    /// op: the invalid operand
-    InvalidOperand { op: String },
-    /// When the interpreter finds an invalid operator, such as a '=' while solving
-    /// op: the invalid operator
-    InvalidOperator { op: String },
-    /// When the interpreter has an invalid output, such as multiple values or a remaining operator
-    /// reason: the error message
-    InvalidExpression { reason: String },
-    /// When interpreting with definitions finds an undefined variable
-    /// name: the name of the undefined variable
-    UndefinedVariable { name: String },
-    /// When interpreting with definitions finds an undefined function
-    /// name: the name of the undefined function
-    UndefinedFunction { name: String },
-    /// When a function is called with the wrong number of arguments
-    /// name: the name of the function
-    /// expected: the number of arguments expected
-    /// got: the number of arguments received
-    InvalidArgumentCount { name: String, expected: usize, got: usize },
-    /// When something other than a number or variable is passed to a function
-    /// name: the name of the function
-    /// value: the value that was passed
-    InvalidArgument { name: String, value: String },
-    /// When the interpreter finds an operator after another operator that should not be there
-    /// op: the operator that was found
-    InvalidLeadingOperator { op: String },
-    /// When the interpreter expects an operator (i.e. after a number) but gets something else
+    /// When the interpreter finds an invalid operand, such as a variable identifier when none are defined.
+    InvalidOperand {
+        /// The invalid operand
+        op: String
+    },
+    /// When the interpreter finds an invalid operator, such as a '=' while solving.
+    InvalidOperator {
+        /// The invalid operator
+        op: String
+    },
+    /// When the interpreter has an invalid output, such as multiple values or a remaining operator.
+    InvalidExpression {
+        /// The reason for the error
+        reason: String
+    },
+    /// When interpreting with definitions finds an undefined variable.
+    UndefinedVariable {
+        /// The name of the undefined variable
+        name: String
+    },
+    /// When interpreting with definitions finds an undefined function.
+    UndefinedFunction {
+        /// The name of the undefined function
+        name: String
+    },
+    /// When a function is called with the wrong number of arguments.
+    InvalidArgumentCount {
+        /// The name of the function
+        name: String,
+        /// The expected number of arguments
+        expected: usize,
+        /// The number of arguments received
+        got: usize
+    },
+    /// When something other than a number or variable is passed to a function.
+    InvalidArgument {
+        /// The name of the function
+        name: String,
+        /// The invalid value that was passed
+        value: String
+    },
+    /// When the interpreter finds an operator after another operator that should not be there.
+    InvalidLeadingOperator {
+        /// the operator that was found
+        op: String
+    },
+    /// When the interpreter expects an operator (i.e. after a number) but gets something else.
     MissingOperator,
-    /// When there is an incomplete pair of parentheses (i.e. open with no close or vice versa)
-    /// found: the parenthesis that was found (either '(' or ')')
-    /// missing: the parenthesis that was expected (either ')' or '(')
-    MismatchedParentheses { found: char, missing: char },
-    /// Custom error messages
-    /// contains a String of the error message
+    /// When there is an incomplete pair of parentheses (i.e. open with no close or vice versa).
+    MismatchedParentheses {
+        /// The parenthesis that was found ('(' or ')')
+        found: char,
+        /// The parenthesis that was missing ('(' or ')')
+        missing: char
+    },
+    /// Custom error messages.
+    /// contains a String of the error message.
     /// this is not used by this program and is only used for custom error messages by the user
-    ///
     Other(String),
 }
 
@@ -162,6 +190,12 @@ impl Error {
         &self.error
     }
 
+    /// When defining a function with a fixed number of arguments, this creates an error message for you
+    /// if the number of arguments is incorrect.
+    pub fn arg_count<S: Into<String>>(fn_name: S, expected: usize, found: usize) -> Self {
+        return Error::create(ErrorType::InvalidArgumentCount { name: fn_name.into(), expected, got: found });
+    }
+
     /// returns the location of the error as (line, character)
     /// this struct uses a private `InputPos` struct to store the position,
     /// but that is not exposed to the user.
@@ -180,6 +214,7 @@ impl Display for Error {
     }
 }
 
+/// The type used for operations.
 #[derive(Debug, Clone)]
 pub struct Number {
     value: f64,
@@ -286,35 +321,35 @@ impl Default for Functions<'_> {
         let mut funcs = Functions::new();
         funcs.register("log", |args| {
             if args.len() != 2 {
-                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "log".to_string(), expected: 2, got: args.len() }));
+                return Err(Error::arg_count("log", 2, args.len()));
             }
             Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
         });
 
         funcs.register("sqrt", |args| {
             if args.len() != 1 {
-                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "sqrt".to_string(), expected: 1, got: args.len() }));
+                return Err(Error::arg_count("sqrt", 1, args.len()));
             }
             Ok(Number::new(args[0].as_f64().sqrt()))
         });
 
         funcs.register("sin", |args| {
             if args.len() != 1 {
-                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "sin".to_string(), expected: 1, got: args.len() }));
+                return Err(Error::arg_count("sin", 1, args.len()));
             }
             Ok(Number::new(args[0].as_f64().sin()))
         });
 
         funcs.register("cos", |args| {
             if args.len() != 1 {
-                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "cos".to_string(), expected: 1, got: args.len() }));
+                return Err(Error::arg_count("cos", 1, args.len()));
             }
             Ok(Number::new(args[0].as_f64().cos()))
         });
 
         funcs.register("tan", |args| {
             if args.len() != 1 {
-                return Err(Error::create(ErrorType::InvalidArgumentCount { name: "tan".to_string(), expected: 1, got: args.len() }));
+                return Err(Error::arg_count("tan", 1, args.len()));
             }
             Ok(Number::new(args[0].as_f64().tan()))
         });
@@ -367,10 +402,13 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 /// defs.register("x", Number::new(3));
 ///
 /// let mut funcs = Functions::new();
-/// // this shows the definition of the log function, which is already implemented in `Functions::default();`
+/// // this shows the definition of the log function,
+/// // which is already implemented in `Functions::default();`
 /// funcs.register("log", |args| {
+///     // this function takes two arguments, base and the number
 ///     if args.len() != 2 {
-///         return Err(Error::create(ErrorType::InvalidArgumentCount { name: "log".to_string(), expected: 2, got: args.len() }));
+///         // if the number of arguments is not 2, return an error
+///         return Err(Error::arg_count("log", 2, args.len()));
 ///     }
 ///     Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
 ///  });

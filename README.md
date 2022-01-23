@@ -76,8 +76,17 @@ fn main() {
     defs.register("x", Number::new(16));
   
     // create the functions list
-    // Functions::default(); adds functions like log, sin, cos, tan, etc.
-    let funcs = Functions::default();
+    let mut funcs = Functions::new();
+    // this shows the definition of the log function,
+    // which is already implemented in `Functions::default();`
+    funcs.register("log", |args| {
+        // this function takes two arguments, base and the number
+        if args.len() != 2 {
+            // if the number of arguments is not 2, return an error
+            return Err(Error::arg_count("log", 2, args.len()));
+        }
+        Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
+     });
     let solved4 = solve_defs("log(2, x)", Some(&defs), Some(&funcs));
     if solved4.is_err() { 
       panic!("{}", solved4.unwrap_err());
