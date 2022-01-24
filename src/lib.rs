@@ -284,7 +284,7 @@ impl Default for Functions<'_> {
 ///
 /// let solved = solve("(1 + 2) * 3");
 /// if solved.is_err() {
-///     panic!("{}", x.unwrap_err());
+///     panic!("{}", solved.unwrap_err());
 /// }
 /// assert_eq!(solved.unwrap().as_i128(), 9);
 /// ```
