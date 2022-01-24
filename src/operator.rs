@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::{Error, ErrorType, Number};
+use crate::{Error, Number};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) enum Operator {
@@ -40,14 +40,14 @@ impl Operator {
             Operator::Mul => left.as_f64() * right.as_f64(),
             Operator::Div => {
                 if right.as_f64() == 0.0 {
-                    return Err(Error::new_gen(ErrorType::DivByZero));
+                    return Err(Error::DivByZero);
                 }
                 left.as_f64() / right.as_f64()
             },
             Operator::Mod => left.as_f64() % right.as_f64(),
             Operator::Pow => {
                 if right.as_f64() < 0.0 {
-                    return Err(Error::new_gen(ErrorType::NegativeExponent));
+                    return Err(Error::NegativeExponent);
                 }
                 left.as_f64().powf(right.as_f64())
             }

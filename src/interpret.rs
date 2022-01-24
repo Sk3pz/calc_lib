@@ -1,5 +1,5 @@
-use crate::{Definitions, Error, ErrorType, Functions, Number};
-use crate::lex::{TokenType};
+use crate::{Definitions, Error, Functions, Number};
+use crate::lex::{Token};
 use crate::postfix::{ShuntedStack, ShuntedStackItem};
 
 pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
@@ -12,66 +12,66 @@ pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
         } else {
             let op = item.get_operator().unwrap();
             if !op.can_apply() {
-                return Err(Error::new_gen(ErrorType::InvalidOperator { op: op.to_string() }));
+                return Err(Error::InvalidOperator { op: op.to_string() });
             }
             let operand_1 = operand_stack.pop().unwrap();
             let operand_2 = operand_stack.pop().unwrap();
             let r = match operand_2 {
-                TokenType::Num(n1) => {
+                Token::Num(n1) => {
                     match operand_1 {
-                        TokenType::Num(n2) => {
+                        Token::Num(n2) => {
                             // o1 is of type Number and o2 is of type Number
-                            TokenType::Num(op.apply(n1.clone(), n2.clone())?)
+                            Token::Num(op.apply(n1.clone(), n2.clone())?)
                         }
-                        _ => return Err(Error::new_gen(ErrorType::InvalidOperand { op: operand_1.to_string() })),
+                        _ => return Err(Error::InvalidOperand { op: operand_1.to_string() }),
                     }
                 }
-                _ => return Err(Error::new_gen(ErrorType::InvalidOperand { op: operand_1.to_string() }))
+                _ => return Err(Error::InvalidOperand { op: operand_1.to_string() })
             };
             operand_stack.push(r);
         }
     }
 
     if operand_stack.len() != 1 {
-        return Err(Error::new_gen(ErrorType::InvalidExpression { reason: "Invalid operand stack ending size".to_string() }));
+        return Err(Error::InvalidExpression { reason: "Invalid operand stack ending size".to_string() });
     }
 
     let result = operand_stack.pop().unwrap();
     match result {
-        TokenType::Num(n) => Ok(n.clone()),
-        _ => Err(Error::new_gen(ErrorType::InvalidExpression { reason: format!("Invalid interpreted value: {}", result) }))
+        Token::Num(n) => Ok(n.clone()),
+        _ => Err(Error::InvalidExpression { reason: format!("Invalid interpreted value: {}", result) })
     }
 }
 
-pub(crate) fn interpret_fn(ident: &String, args: &Vec<TokenType>, functions: &Functions, definitions: Option<&Definitions>) -> Result<Number, Error> {
+pub(crate) fn interpret_fn(ident: &String, args: &Vec<Token>, functions: &Functions, definitions: Option<&Definitions>) -> Result<Number, Error> {
     let value = functions.get(ident);
     if value.is_none() {
-        return Err(Error::new_gen(ErrorType::UndefinedFunction { name: ident.to_string() }));
+        return Err(Error::UndefinedFunction { name: ident.to_string() });
     }
 
     // replace args with numbers
     let mut pass_args = Vec::new();
     for a in args {
-        if let TokenType::Num(n) = a {
+        if let Token::Num(n) = a {
             pass_args.push(n.clone());
         } else {
             match a {
-                TokenType::Identifier(s) => {
+                Token::Identifier(s) => {
                     if definitions.is_some() {
                         let value = definitions.unwrap().get(s);
                         if value.is_none() {
-                            return Err(Error::new_gen(ErrorType::UndefinedVariable { name: s.to_string() }));
+                            return Err(Error::UndefinedVariable { name: s.to_string() });
                         }
                         pass_args.push(value.unwrap().clone());
                     } else {
-                        return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
+                        return Err(Error::InvalidArgument { name: ident.to_string(), value: a.to_string() });
                     }
                 }
-                TokenType::Function(i, a) => {
+                Token::Function(i, a) => {
                     pass_args.push(interpret_fn(i, a, functions, definitions)?);
                 }
                 _ => {
-                    return Err(Error::new_gen(ErrorType::InvalidArgument { name: ident.to_string(), value: a.to_string() }));
+                    return Err(Error::InvalidArgument { name: ident.to_string(), value: a.to_string() });
                 }
             }
         }
@@ -88,12 +88,12 @@ pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: 
             if item.is_operand() {
                 let operand = item.get_operand().unwrap();
                 match operand {
-                    TokenType::Identifier(ident) => {
+                    Token::Identifier(ident) => {
                         let value = definitions.get(ident);
                         if value.is_none() {
-                            return Err(Error::new_gen(ErrorType::UndefinedVariable { name: ident.to_string() }));
+                            return Err(Error::UndefinedVariable { name: ident.to_string() });
                         }
-                        input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(value.unwrap().clone())));
+                        input.replace(x, ShuntedStackItem::new_operand(Token::Num(value.unwrap().clone())));
                     }
                     _ => {}
                 }
@@ -106,9 +106,9 @@ pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: 
             let item = input.peek_at(x).unwrap();
             if item.is_operand() {
                 let operand = item.get_operand().unwrap();
-                if let TokenType::Function(ident, args) = operand {
+                if let Token::Function(ident, args) = operand {
                     let val = interpret_fn(ident, args, functions, definitions)?;
-                    input.replace(x, ShuntedStackItem::new_operand(TokenType::Num(val)));
+                    input.replace(x, ShuntedStackItem::new_operand(Token::Num(val)));
                 }
             }
         }

@@ -1,16 +1,16 @@
 use std::fmt::{Display, Formatter};
-use crate::{Error, ErrorType, Number};
-use crate::lex::{Token, TokenType};
+use crate::{Error, Number};
+use crate::lex::Token;
 use crate::operator::Operator;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ShuntedStackItem {
     operator: Option<Operator>,
-    operand: Option<TokenType>,
+    operand: Option<Token>,
 }
 
 impl ShuntedStackItem {
-    pub(crate) fn new_operand(statement: TokenType) -> Self {
+    pub(crate) fn new_operand(statement: Token) -> Self {
         Self {
             operator: None,
             operand: Some(statement),
@@ -36,7 +36,7 @@ impl ShuntedStackItem {
         self.operator.as_ref()
     }
 
-    pub(crate) fn get_operand(&self) -> Option<&TokenType> {
+    pub(crate) fn get_operand(&self) -> Option<&Token> {
         self.operand.as_ref()
     }
 }
@@ -111,62 +111,59 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
     let mut last_was_ident = false;
 
     let first = tokens.get(0).unwrap();
-    if let TokenType::Operator(op) = &first.token_type {
+    if let Token::Operator(op) = &first {
         match op {
             Operator::Sub => {
                 negative = true;
             }
             Operator::LeftParen => {}
             _ => {
-                return Err(Error::new(ErrorType::InvalidLeadingOperator { op: op.to_string() }, first.pos.clone()));
+                return Err(Error::InvalidLeadingOperator { op: op.to_string() });
             }
         }
     }
 
     for token in tokens {
-        match &token.token_type {
-            TokenType::Num(_) => {
+        match &token {
+            Token::Num(_) => {
                 if last_was_ident {
-                    return Err(Error::new(ErrorType::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() }, token.pos.clone()));
+                    return Err(Error::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() });
                 }
                 let mut t = token.clone();
                 if negative {
-                    if let TokenType::Num(x) = token.token_type.clone() {
-                        t = Token::new(
-                            TokenType::Num(Number::new(-x.value)),
-                            token.pos.clone()
-                        );
+                    if let Token::Num(x) = token.clone() {
+                        t = Token::Num(Number::new(-x.value));
                     }
                 }
-                postfix.push(ShuntedStackItem::new_operand(t.token_type));
+                postfix.push(ShuntedStackItem::new_operand(t));
                 last_was_ident = true;
                 last_op = None;
                 negative = false;
             }
-            TokenType::Identifier(_) => {
+            Token::Identifier(_) => {
                 if last_was_ident {
-                    return Err(Error::new(ErrorType::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() }, token.pos.clone()));
+                    return Err(Error::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() });
                 }
-                postfix.push(ShuntedStackItem::new_operand(token.token_type.clone()));
+                postfix.push(ShuntedStackItem::new_operand(token.clone()));
                 last_op = None;
                 last_was_ident = true;
                 negative = false;
             }
-            TokenType::Function(_, _) => {
+            Token::Function(_, _) => {
                 if last_was_ident {
-                    return Err(Error::new(ErrorType::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() }, token.pos.clone()));
+                    return Err(Error::InvalidExpression { reason: "Two identifiers or numbers found in a row".to_string() });
                 }
-                postfix.push(ShuntedStackItem::new_operand(token.token_type.clone()));
+                postfix.push(ShuntedStackItem::new_operand(token.clone()));
                 last_op = None;
                 last_was_ident = true;
                 negative = false;
             }
-            TokenType::Operator(op) => {
+            Token::Operator(op) => {
                 match op {
                     Operator::LeftParen => {
                         op_stack.push(op.clone());
                         if last_was_ident {
-                            return Err(Error::new(ErrorType::MissingOperator, token.pos.clone()));
+                            return Err(Error::MissingOperator);
                         }
                         last_op = None;
                         last_was_ident = false;
@@ -184,7 +181,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                         }
 
                         if !found {
-                            return Err(Error::new(ErrorType::MismatchedParentheses { found: ')', missing: '(' }, token.pos.clone()));
+                            return Err(Error::MismatchedParentheses { found: ')', missing: '(' });
                         }
 
                         last_op = Some(op.clone());
@@ -199,7 +196,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                                 continue;
                             } else if last_op.as_ref().unwrap().clone() != Operator::LeftParen
                                 && last_op.as_ref().unwrap().clone() != Operator::RightParen {
-                                return Err(Error::new(ErrorType::InvalidOperator { op: op.to_string() }, token.pos.clone()));
+                                return Err(Error::InvalidOperator { op: op.to_string() });
                             }
                         }
 
@@ -226,7 +223,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
 
     while let Some(op) = op_stack.pop() {
         if op == Operator::LeftParen {
-            return Err(Error::new_gen(ErrorType::MismatchedParentheses { found: '(', missing: ')' }));
+            return Err(Error::MismatchedParentheses { found: '(', missing: ')' });
         }
         postfix.push(ShuntedStackItem::new_operator(op));
     }

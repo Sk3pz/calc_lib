@@ -68,7 +68,7 @@ fn main() {
 ```
 Solving with variables:
 ```rust
-use calc_lib::{solve_defs, Definitions, Number, Functions};
+use calc_lib::{solve_defs, Definitions, Number, Functions, Error};
 
 fn main() {
     // define x as 16

@@ -9,47 +9,12 @@ pub(crate) mod postfix;
 pub(crate) mod interpret;
 pub(crate) mod operator;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub(crate) struct InputPos {
-    line: usize,
-    ch: usize,
-}
-
-impl InputPos {
-    pub(crate) fn new(line: usize, ch: usize) -> Self {
-        Self {
-            line, ch
-        }
-    }
-
-    pub(crate) fn next(&mut self) {
-        self.ch += 1
-    }
-
-    pub(crate) fn newline(&mut self) {
-        self.line += 1;
-        self.ch = 0;
-    }
-}
-
-impl Default for InputPos {
-    fn default() -> Self {
-        Self::new(1, 1)
-    }
-}
-
-impl Display for InputPos {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}:{}", self.line, self.ch)
-    }
-}
-
 /// An enum representing an error that occurred
 /// This is used by the Error struct to represent errors
 /// This allows for user handling of errors while still allowing them to just be
 /// printed out if custom handling of errors is not needed.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum ErrorType {
+pub enum Error {
     /// An error in which the input attempts a division by zero, which is undefined.
     DivByZero,
     /// An error in which the input attempts to raise a number to a negative power, which is undefined.
@@ -134,82 +99,36 @@ pub enum ErrorType {
     Other(String),
 }
 
-impl Display for ErrorType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ErrorType::DivByZero => write!(f, "Can't divide by zero"),
-            ErrorType::NegativeExponent => write!(f, "Can't raise a value to a negative power"),
-            ErrorType::InvalidCharacter { c } => write!(f, "Invalid character: {}", c),
-            ErrorType::InvalidNumber { found } => write!(f, "Invalid number: {}", found),
-            ErrorType::Expected { expected, found } => write!(f, "Expected '{}', found '{}'", expected, found),
-            ErrorType::UnexpectedEOI => write!(f, "Unexpected end of input"),
-            ErrorType::InvalidOperand { op } => write!(f, "Invalid operand: {}", op),
-            ErrorType::InvalidOperator { op } => write!(f, "Invalid operator: {}", op),
-            ErrorType::InvalidExpression { reason } => write!(f, "Invalid expression: {}", reason),
-            ErrorType::UndefinedVariable { name } => write!(f, "Undefined variable: {}", name),
-            ErrorType::UndefinedFunction { name } => write!(f, "Undefined function: {}", name),
-            ErrorType::InvalidArgumentCount { name, expected, got } => write!(f, "Invalid argument count for function '{}': expected {}, got {}", name, expected, got),
-            ErrorType::InvalidArgument { name, value } => write!(f, "Invalid argument for function '{}': {}", name, value),
-            ErrorType::InvalidLeadingOperator { op } => write!(f, "Invalid leading operator: {}", op),
-            ErrorType::MissingOperator => write!(f, "Missing operator"),
-            ErrorType::MismatchedParentheses { found, missing } => write!(f, "Mismatched parentheses: found '{}', missing '{}'", found, missing),
-            ErrorType::Other(s) => write!(f, "{}", s),
-        }
-    }
-}
-
-/// Stores errors from the parser if any occur.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Error {
-    error: ErrorType,
-    pos: Option<InputPos>,
-}
-
 impl Error {
-    pub(crate) fn new(etype: ErrorType, pos: InputPos) -> Self {
-        Self {
-            error: etype,
-            pos: Some(pos),
+    pub fn arg_count<S: Into<String>>(name: S, expected: usize, got: usize) -> Error {
+        Error::InvalidArgumentCount {
+            name: name.into(),
+            expected,
+            got
         }
-    }
-
-    pub(crate) fn new_gen(etype: ErrorType) -> Self {
-        Self {
-            error: etype,
-            pos: None,
-        }
-    }
-
-    /// a way for users to create new errors
-    pub fn create(etype: ErrorType) -> Self {
-        Self::new_gen(etype)
-    }
-
-    /// Returns the error message.
-    pub fn get_error(&self) -> &ErrorType {
-        &self.error
-    }
-
-    /// When defining a function with a fixed number of arguments, this creates an error message for you
-    /// if the number of arguments is incorrect.
-    pub fn arg_count<S: Into<String>>(fn_name: S, expected: usize, found: usize) -> Self {
-        return Error::create(ErrorType::InvalidArgumentCount { name: fn_name.into(), expected, got: found });
-    }
-
-    /// returns the location of the error as (line, character)
-    /// this struct uses a private `InputPos` struct to store the position,
-    /// but that is not exposed to the user.
-    pub fn get_loc(&self) -> (usize, usize) {
-        (self.pos.as_ref().unwrap().line, self.pos.as_ref().unwrap().ch)
     }
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.pos.is_some() {
-            write!(f, "Error: {} at {}", self.error, self.pos.as_ref().unwrap())
-        } else {
-            write!(f, "Error: {}", self.error)
+        match self {
+            Error::DivByZero => write!(f, "Can't divide by zero"),
+            Error::NegativeExponent => write!(f, "Can't raise a value to a negative power"),
+            Error::InvalidCharacter { c } => write!(f, "Invalid character: {}", c),
+            Error::InvalidNumber { found } => write!(f, "Invalid number: {}", found),
+            Error::Expected { expected, found } => write!(f, "Expected '{}', found '{}'", expected, found),
+            Error::UnexpectedEOI => write!(f, "Unexpected end of input"),
+            Error::InvalidOperand { op } => write!(f, "Invalid operand: {}", op),
+            Error::InvalidOperator { op } => write!(f, "Invalid operator: {}", op),
+            Error::InvalidExpression { reason } => write!(f, "Invalid expression: {}", reason),
+            Error::UndefinedVariable { name } => write!(f, "Undefined variable: {}", name),
+            Error::UndefinedFunction { name } => write!(f, "Undefined function: {}", name),
+            Error::InvalidArgumentCount { name, expected, got } => write!(f, "Invalid argument count for function '{}': expected {}, got {}", name, expected, got),
+            Error::InvalidArgument { name, value } => write!(f, "Invalid argument for function '{}': {}", name, value),
+            Error::InvalidLeadingOperator { op } => write!(f, "Invalid leading operator: {}", op),
+            Error::MissingOperator => write!(f, "Missing operator"),
+            Error::MismatchedParentheses { found, missing } => write!(f, "Mismatched parentheses: found '{}', missing '{}'", found, missing),
+            Error::Other(s) => write!(f, "{}", s),
         }
     }
 }
@@ -396,7 +315,7 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 ///
 /// # Usage with functions:
 /// ```
-/// use calc_lib::{Definitions, Functions, Number, Error, solve_defs, ErrorType};
+/// use calc_lib::{Definitions, Functions, Number, solve_defs, Error};
 ///
 /// let mut defs = Definitions::new();
 /// defs.register("x", Number::new(3));
@@ -416,7 +335,6 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 /// let solved = solve_defs("log(2, 16)", Some(&defs), Some(&funcs));
 /// assert_eq!(solved.unwrap().as_i128(), 4);
 /// ```
-///
 pub fn solve_defs<S: Into<String>>(input: S, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<Number, Error> {
     let mut input = InputReader::new(input.into());
     let mut tokens = lex::lex(&mut input, true)?;
@@ -465,5 +383,19 @@ mod test {
             panic!("{}", solved5.unwrap_err());
         }
         assert_eq!(solved5.unwrap().as_f64(), 4.0);
+    }
+
+    #[test]
+    fn test_specific() {
+        let exprs = "2 ^ (2 * 2)";
+        let solved_res = solve(exprs);
+        if solved_res.is_err() {
+            panic!("{}", solved_res.err().unwrap());
+        }
+        let solved = solved_res.unwrap();
+        assert_eq!(solved.clone().as_i128(), 16);
+
+        let mut defs = Definitions::new();
+        defs.register("solved", Number::new(solved.as_f64()));
     }
 }
