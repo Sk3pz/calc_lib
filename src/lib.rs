@@ -10,7 +10,6 @@ pub(crate) mod interpret;
 pub(crate) mod operator;
 
 /// An enum representing an error that occurred
-/// This is used by the Error struct to represent errors
 /// This allows for user handling of errors while still allowing them to just be
 /// printed out if custom handling of errors is not needed.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -283,13 +282,12 @@ impl Default for Functions<'_> {
 /// ```
 /// use calc_lib::solve;
 ///
-/// let x = solve("(1 + 2) * 3");
-/// if x.is_err() {
+/// let solved = solve("(1 + 2) * 3");
+/// if solved.is_err() {
 ///     panic!("{}", x.unwrap_err());
 /// }
-/// assert_eq!(x.unwrap().as_i128(), 9);
+/// assert_eq!(solved.unwrap().as_i128(), 9);
 /// ```
-///
 pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
     let mut input = InputReader::new(input.into());
     let mut tokens = lex::lex(&mut input, false)?;
