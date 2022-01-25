@@ -1,7 +1,7 @@
 # calc_lib
 
-A simple library for passing in expressions in string from and getting back the result, using correct order of operations.\
-This works best when you have an equation in string form, usually from user input, and need to solve it quickly and efficiently.
+A crate for evaluating algebraic expressions from input using correct order of operations.\
+This was designed originally for use in terminal based calculator apps.
 
 ### Features
 
@@ -31,7 +31,7 @@ accessed with `Functions::default();`
 
 ### Custom Error system:
 
-* Exposes the ErrorType enum which allows the user to determine what type of error occurred, and have all the relevant information about it
+* Exposes the Error enum which allows the user to determine what type of error occurred, and have all the relevant information about it
 * Allows for the user to handle errors in their own way if needed, but they can also just be printed out.
 
 # Examples:
@@ -76,9 +76,11 @@ fn main() {
     defs.register("x", Number::new(16));
   
     // create the functions list
+    // this defines an empty Functions struct with no functions.
+    // for functions like log, sqrt, sin, cos, tan, etc., use `Functions::default()`
     let mut funcs = Functions::new();
     // this shows the definition of the log function,
-    // which is already implemented in `Functions::default();`
+    // exactly how it is implemented in `Functions::default();`
     funcs.register("log", |args| {
         // this function takes two arguments, base and the number
         if args.len() != 2 {

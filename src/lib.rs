@@ -335,7 +335,7 @@ pub fn solve<S: Into<String>>(input: S) -> Result<Number, Error> {
 /// ```
 pub fn solve_defs<S: Into<String>>(input: S, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<Number, Error> {
     let mut input = InputReader::new(input.into());
-    let mut tokens = lex::lex(&mut input, true)?;
+    let mut tokens = lex::lex(&mut input, definitions.is_some() || functions.is_some())?;
     let mut shunted = postfix::shunting_yard(&mut tokens)?;
     interpret_with_definitions(&mut shunted, definitions, functions)
 }
