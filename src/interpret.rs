@@ -1,8 +1,8 @@
-use crate::{Definitions, Error, Functions, Number};
+use crate::{Definitions, Error, Functions};
 use crate::lex::{Token};
 use crate::postfix::{ShuntedStack, ShuntedStackItem};
 
-pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
+pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<f64, Error> {
     // loop through the stack until an operator is found, pushing the operands onto the operand stack
     // in the process
     let mut operand_stack = Vec::new();
@@ -43,7 +43,7 @@ pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<Number, Error> {
     }
 }
 
-pub(crate) fn interpret_fn(ident: &String, args: &Vec<Token>, functions: &Functions, definitions: Option<&Definitions>) -> Result<Number, Error> {
+pub(crate) fn interpret_fn(ident: &String, args: &Vec<Token>, functions: &Functions, definitions: Option<&Definitions>) -> Result<f64, Error> {
     let value = functions.get(ident);
     if value.is_none() {
         return Err(Error::UndefinedFunction { name: ident.to_string() });
@@ -80,7 +80,7 @@ pub(crate) fn interpret_fn(ident: &String, args: &Vec<Token>, functions: &Functi
     value.unwrap()(pass_args)
 }
 
-pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<Number, Error> {
+pub(crate) fn interpret_with_definitions(input: &mut ShuntedStack, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<f64, Error> {
     if definitions.is_some() {
         let definitions = definitions.unwrap();
         for x in 0..input.len() {

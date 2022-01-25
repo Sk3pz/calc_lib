@@ -1,13 +1,13 @@
 use std::fmt::{Display, Formatter};
 use crate::input_reader::InputReader;
-use crate::{Error, Number};
+use crate::Error;
 use crate::operator::Operator;
 
 #[derive(Debug, Clone)]
 pub(crate) enum Token {
     Operator(Operator),
     Identifier(String),
-    Num(Number),
+    Num(f64),
     Function(String, Vec<Token>),
 }
 
@@ -90,13 +90,13 @@ fn lex_number(input: &mut InputReader) -> Result<Token, Error> {
         if f.is_err() {
             return Err(Error::InvalidNumber { found: number });
         }
-        Ok(Token::Num(Number::new(f.unwrap())))
+        Ok(Token::Num(f.unwrap()))
     } else {
         let n = number.parse::<i128>();
         if n.is_err() {
             return Err(Error::InvalidNumber { found: number });
         }
-        Ok(Token::Num(Number::new(n.unwrap() as f64)))
+        Ok(Token::Num(n.unwrap() as f64))
     }
 }
 
@@ -153,7 +153,7 @@ pub(crate) fn next_token(input: &mut InputReader, allow_idents: bool) -> Result<
 
 pub(crate) fn lex(input: &mut InputReader, allow_idents: bool) -> Result<Vec<Token>, Error> {
     if input.is_empty() {
-        return Ok(vec![Token::Num(Number::new(0.0))]);
+        return Ok(vec![Token::Num(0.0)]);
     }
 
     let mut tokens = Vec::new();

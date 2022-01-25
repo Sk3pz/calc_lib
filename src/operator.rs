@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::{Error, Number};
+use crate::Error;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) enum Operator {
@@ -33,26 +33,26 @@ impl Operator {
         }
     }
 
-    pub(crate) fn apply(&self, left: Number, right: Number) -> Result<Number, Error> {
-        Ok(Number::new(match self {
-            Operator::Add => left.as_f64() + right.as_f64(),
-            Operator::Sub => left.as_f64() - right.as_f64(),
-            Operator::Mul => left.as_f64() * right.as_f64(),
+    pub(crate) fn apply(&self, left: f64, right: f64) -> Result<f64, Error> {
+        Ok(match self {
+            Operator::Add => left + right,
+            Operator::Sub => left - right,
+            Operator::Mul => left * right,
             Operator::Div => {
-                if right.as_f64() == 0.0 {
+                if right == 0.0 {
                     return Err(Error::DivByZero);
                 }
-                left.as_f64() / right.as_f64()
+                left / right
             },
-            Operator::Mod => left.as_f64() % right.as_f64(),
+            Operator::Mod => left % right,
             Operator::Pow => {
-                if right.as_f64() < 0.0 {
+                if right < 0.0 {
                     return Err(Error::NegativeExponent);
                 }
-                left.as_f64().powf(right.as_f64())
+                left.powf(right)
             }
             _ => panic!("Operator::apply() called on non-operator"),
-        }))
+        })
     }
 }
 

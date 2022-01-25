@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::{Error, Number};
+use crate::Error;
 use crate::lex::Token;
 use crate::operator::Operator;
 
@@ -132,7 +132,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                 let mut t = token.clone();
                 if negative {
                     if let Token::Num(x) = token.clone() {
-                        t = Token::Num(Number::new(-x.value));
+                        t = Token::Num(-x);
                     }
                 }
                 postfix.push(ShuntedStackItem::new_operand(t));
