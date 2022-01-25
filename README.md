@@ -47,7 +47,7 @@ fn main() {
     if solved.is_err() {
         panic!("{}", solved.err().unwrap());
     }
-    assert_eq!(solved.unwrap().as_i128(), 7);
+    assert_eq!(solved.unwrap() as i32, 7);
 }
 ```
 Decimal Equations:
@@ -63,17 +63,17 @@ fn main() {
     if solved.is_err() {
         panic!("{}", x.unwrap_err());
     }
-    assert_eq!(solved.unwrap().as_f64(), 9.05);
+    assert_eq!(solved.unwrap(), 9.05);
 }
 ```
 Solving with variables:
 ```rust
-use calc_lib::{solve_defs, Definitions, Number, Functions, Error};
+use calc_lib::{solve_defs, Definitions, Functions, Error};
 
 fn main() {
     // define x as 16
     let mut defs = Definitions::new();
-    defs.register("x", Number::new(16));
+    defs.register("x", 16);
   
     // create the functions list
     // this defines an empty Functions struct with no functions.
@@ -82,17 +82,18 @@ fn main() {
     // this shows the definition of the log function,
     // exactly how it is implemented in `Functions::default();`
     funcs.register("log", |args| {
-        // this function takes two arguments, base and the number
+        // args is of type Vec<f64>
+        // this takes 2 arguments: base, number
         if args.len() != 2 {
-            // if the number of arguments is not 2, return an error
             return Err(Error::arg_count("log", 2, args.len()));
         }
-        Ok(Number::new(args[1].as_f64().log(args[0].as_f64())))
-     });
+        // return the value
+        Ok(args[1].log(args[0]))
+    });
     let solved4 = solve_defs("log(2, x)", Some(&defs), Some(&funcs));
     if solved4.is_err() { 
       panic!("{}", solved4.unwrap_err());
     }
-    assert_eq!(solved4.unwrap().as_f64(), 4.0);
+    assert_eq!(solved4.unwrap(), 4.0);
 }
 ```
