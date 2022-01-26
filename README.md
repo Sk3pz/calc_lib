@@ -47,6 +47,8 @@ fn main() {
     if eval.is_err() {
         panic!("{}", eval.err().unwrap());
     }
+    // the result is a f64, which can then be used as needed
+    // here, I am just asserting that it is the value it should be.
     assert_eq!(eval.unwrap() as i32, 7);
 }
 ```
@@ -57,7 +59,7 @@ use calc_lib::evaluate;
 fn main() {
     // define the expression
     let expression = "1.3 + 2.5 * 3.1";
-    // solve the expression
+    // evaluate the expression
     let eval = evaluate(expression);
     // handle errors that may occur
     if eval.is_err() {
@@ -90,6 +92,7 @@ fn main() {
         // return the value
         Ok(args[1].log(args[0]))
     });
+    // evaluate the expression and verify the results
     let eval = evaluate_with_defined("log(2, x)", Some(&defs), Some(&funcs));
     if eval.is_err() { 
       panic!("{}", eval.unwrap_err());
