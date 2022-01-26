@@ -236,48 +236,50 @@ impl Default for Functions<'_> {
     }
 }
 
-/// Solves an equation in infix notation using the shunting yard algorithm.
-/// this function will not accept decimals numbers, only integers.
+/// Evaluates an equation in infix notation using the shunting yard algorithm.
+/// This function does not accept defined variables or functions. See `evaluate_with_defined`.
 /// # Usage Example:
 /// ```
-/// use calc_lib::solve;
+/// use calc_lib::evaluate;
 ///
-/// let solved = solve("(1 + 2) * 3");
-/// if solved.is_err() {
-///     panic!("{}", solved.unwrap_err());
+/// let eval = evaluate("(1 + 2) * 3");
+/// if eval.is_err() {
+///     panic!("{}", eval.unwrap_err());
 /// }
-/// assert_eq!(solved.unwrap() as i64, 9);
+/// assert_eq!(eval.unwrap() as i64, 9);
 /// ```
-pub fn solve<S: Into<String>>(input: S) -> Result<f64, Error> {
+pub fn evaluate<S: Into<String>>(input: S) -> Result<f64, Error> {
     let mut input = InputReader::new(input.into());
     let mut tokens = lex::lex(&mut input, false)?;
     let mut shunted = postfix::shunting_yard(&mut tokens)?;
     interpret(&mut shunted)
 }
 
-/// Solves an equation in infix notation using the shunting yard algorithm.
-/// This will not accept decimal numbers, only integers.
-/// this function takes a HashMap of definitions (type Definitions<i128>)
-/// and will replace identifiers found in the equation with their respective values.
+/// Evaluates an expression in infix notation using the shunting yard algorithm.
+/// this function takes the expression, a Definitions struct and a Functions struct which
+/// allow for variables and functions to be interpreted within the expression.
 ///
 /// # Usage Example:
-/// ```
-/// use calc_lib::{Definitions, solve_defs};
+///```
+/// use calc_lib::{Definitions, evaluate_with_defined};
 ///
+/// // define the variable 'x' as 3 for use in the expression
 /// let mut defs = Definitions::new();
 /// defs.register("x", 3);
 ///
-/// let solved = solve_defs("(x + 3) / 3", Some(&defs), None);
+/// let solved = evaluate_with_defined("(x + 3) / 3", Some(&defs), None);
 /// assert_eq!(solved.unwrap() as i64, 2);
 /// ```
 ///
 /// # Usage with functions:
 /// ```
-/// use calc_lib::{Definitions, Functions, solve_defs, Error};
+/// use calc_lib::{Definitions, Functions, evaluate_with_defined, Error};
 ///
+/// // define the variable 'x' as 3 for use in the expression
 /// let mut defs = Definitions::new();
 /// defs.register("x", 3);
 ///
+/// // define the functions that can be used and their logic
 /// let mut funcs = Functions::new();
 /// // this shows the definition of the log function,
 /// // which is already implemented in `Functions::default();`
@@ -288,10 +290,10 @@ pub fn solve<S: Into<String>>(input: S) -> Result<f64, Error> {
 ///     Ok(args[1].log(args[0]))
 ///});
 ///
-/// let solved = solve_defs("log(2, 16)", Some(&defs), Some(&funcs));
-/// assert_eq!(solved.unwrap() as i64, 4);
+/// let eval = evaluate_with_defined("log(2, 16)", Some(&defs), Some(&funcs));
+/// assert_eq!(eval.unwrap() as i64, 4);
 /// ```
-pub fn solve_defs<S: Into<String>>(input: S, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<f64, Error> {
+pub fn evaluate_with_defined<S: Into<String>>(input: S, definitions: Option<&Definitions>, functions: Option<&Functions>) -> Result<f64, Error> {
     let mut input = InputReader::new(input.into());
     let mut tokens = lex::lex(&mut input, definitions.is_some() || functions.is_some())?;
     let mut shunted = postfix::shunting_yard(&mut tokens)?;
@@ -302,56 +304,13 @@ pub fn solve_defs<S: Into<String>>(input: S, definitions: Option<&Definitions>, 
 mod test {
     use super::*;
     #[test]
-    fn test_shunt() {
-        let solved = solve("1 + 2 * 3");
-        if solved.is_err() {
-            panic!("{}", solved.err().unwrap());
+    fn test1() {
+        let expression = "2 + 3 * 4";
+
+        let eval = evaluate(expression);
+        if eval.is_err() {
+            panic!("Encountered an error evaluating: {}", eval.unwrap_err());
         }
-        assert_eq!(solved.unwrap() as i64, 7);
-
-        let solved2 = solve("");
-        if solved2.is_err() {
-            panic!("{}", solved2.err().unwrap());
-        }
-        assert_eq!(solved2.unwrap() as i64, 0);
-
-        let x = solve("1.3 + 2.5 * 3.1");
-        if x.is_err() {
-            panic!("{}", x.unwrap_err());
-        }
-        assert_eq!(x.unwrap(), 9.05);
-
-        let mut defs = Definitions::new();
-        defs.register("x", 16);
-
-        let solved3 = solve_defs("(x + 4) / 5.0", Some(&defs), None);
-        assert_eq!(solved3.unwrap(), 4.0);
-
-        let funcs = Functions::default();
-        let solved4 = solve_defs("log(2, x)", Some(&defs), Some(&funcs));
-        if solved4.is_err() {
-            panic!("{}", solved4.unwrap_err());
-        }
-        assert_eq!(solved4.unwrap(), 4.0);
-
-        let solved5 = solve_defs("log(log(2,4), x)", Some(&defs), Some(&funcs));
-        if solved5.is_err() {
-            panic!("{}", solved5.unwrap_err());
-        }
-        assert_eq!(solved5.unwrap(), 4.0);
-    }
-
-    #[test]
-    fn test_specific() {
-        let exprs = "2 ^ (2 * 2)";
-        let solved_res = solve(exprs);
-        if solved_res.is_err() {
-            panic!("{}", solved_res.err().unwrap());
-        }
-        let solved = solved_res.unwrap();
-        assert_eq!(solved.clone() as i128, 16);
-
-        let mut defs = Definitions::new();
-        defs.register("solved", solved);
+        assert_eq!(eval.unwrap() as i32, 14)
     }
 }

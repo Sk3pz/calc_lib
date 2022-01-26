@@ -15,11 +15,11 @@ This was designed originally for use in terminal based calculator apps.
 ### Planned Features
 
 * equation validation (such as `2 + 2 = 4` which is valid, and `2 + 2 = 5` which is not)
-* variable solving (such as `x + 2 = 4` will result in `x = 2`)
+* solving for a variable (such as `x + 2 = 4` will result in `x = 2`)
 
 ### Features that may be implemented in the future
 
-* Solving for multiple variables (such as `x + y = 4` `2x + 2y = 8` will result in `x = 2` `y = 2`)
+* solving for multiple variables (such as `3x - y = 7`, `2x + y = 8` will result in `x = 3`, `y = 2`)
 
 ### Default functions
 accessed with `Functions::default();`
@@ -37,38 +37,38 @@ accessed with `Functions::default();`
 # Examples:
 Integer equations:
 ```rust
-// solves a simple equation
-use calc_lib::solve;
+// evaluates an algebraic equation
+use calc_lib::evaluate;
 
 fn main() {
-    // the equation to solve
-    let solved = solve("1 + 2 * 3");
+    // the equation to evaluate
+    let eval = evaluate("1 + 2 * 3");
     // print out errors if they occur, or handle them another way
-    if solved.is_err() {
-        panic!("{}", solved.err().unwrap());
+    if eval.is_err() {
+        panic!("{}", eval.err().unwrap());
     }
-    assert_eq!(solved.unwrap() as i32, 7);
+    assert_eq!(eval.unwrap() as i32, 7);
 }
 ```
 Decimal Equations:
 ```rust
-use calc_lib::solve;
+use calc_lib::evaluate;
 
 fn main() {
     // define the expression
     let expression = "1.3 + 2.5 * 3.1";
     // solve the expression
-    let solved = solve(expression);
+    let eval = evaluate(expression);
     // handle errors that may occur
-    if solved.is_err() {
+    if eval.is_err() {
         panic!("{}", x.unwrap_err());
     }
-    assert_eq!(solved.unwrap(), 9.05);
+    assert_eq!(eval.unwrap(), 9.05);
 }
 ```
 Solving with variables:
 ```rust
-use calc_lib::{solve_defs, Definitions, Functions, Error};
+use calc_lib::{evaluate_with_defined, Definitions, Functions, Error};
 
 fn main() {
     // define x as 16
@@ -90,10 +90,10 @@ fn main() {
         // return the value
         Ok(args[1].log(args[0]))
     });
-    let solved4 = solve_defs("log(2, x)", Some(&defs), Some(&funcs));
-    if solved4.is_err() { 
-      panic!("{}", solved4.unwrap_err());
+    let eval = evaluate_with_defined("log(2, x)", Some(&defs), Some(&funcs));
+    if eval.is_err() { 
+      panic!("{}", eval.unwrap_err());
     }
-    assert_eq!(solved4.unwrap(), 4.0);
+    assert_eq!(eval.unwrap(), 4.0);
 }
 ```
