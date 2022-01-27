@@ -1,6 +1,6 @@
 [package]
 name = "calc_lib"
-version = "1.7.0"
+version = "2.0.0"
 edition = "2021"
 authors = ["eric (Sk3pz) skepz.dev@gmail.com"]
 description = "A library for calculating things with correct order of operations"

@@ -236,12 +236,6 @@ impl Default for Functions<'_> {
     }
 }
 
-#[deprecated = "use `evaluate` instead"]
-pub use evaluate as solve;
-
-#[deprecated = "use `evaluate_with_defined` instead"]
-pub use evaluate_with_defined as solve_defs;
-
 /// Evaluates an equation in infix notation using the shunting yard algorithm.
 /// This function does not accept defined variables or functions. See `evaluate_with_defined`.
 /// # Usage Example:
