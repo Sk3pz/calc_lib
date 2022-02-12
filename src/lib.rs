@@ -305,12 +305,18 @@ mod test {
     use super::*;
     #[test]
     fn test1() {
-        let expression = "2 + 3 * 4";
+        let expression = "(2 + 1) - 50 * 12 / 18 - (3 + 1) * 5";
+
+        // (2 + 1) - 50 * 12 / 18 - (3 + 1) * 5
+        // 3 - 33.333333 - 4 * 5
+        // 3 - 33.333333 - 20
+        // 3 - 53.333333
+        // 50.333333
 
         let eval = evaluate(expression);
         if eval.is_err() {
             panic!("Encountered an error evaluating: {}", eval.unwrap_err());
         }
-        assert_eq!(eval.unwrap() as i32, 14)
+        println!("{}", eval.unwrap());
     }
 }

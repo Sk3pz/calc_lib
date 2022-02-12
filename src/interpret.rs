@@ -33,7 +33,12 @@ pub(crate) fn interpret(input: &mut ShuntedStack) -> Result<f64, Error> {
     }
 
     if operand_stack.len() != 1 {
-        return Err(Error::InvalidExpression { reason: "Invalid operand stack ending size".to_string() });
+        let mut contained = format!("");
+        for x in &operand_stack {
+            contained.push_str(format!("{}, ", x).as_str());
+        }
+        return Err(Error::InvalidExpression { reason: format!("Invalid operand stack ending size {} containing: {}",
+        operand_stack.len(), contained) });
     }
 
     let result = operand_stack.pop().unwrap();

@@ -14,10 +14,10 @@ pub(crate) enum Token {
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            Token::Operator(o) => write!(f, "Operator:{}", o),
-            Token::Identifier(ref s) => write!(f, "Ident:{}", s),
-            Token::Num(n) => write!(f, "Number:{}", n),
-            Token::Function(s, _) => write!(f, "Function:{}(...)", s),
+            Token::Operator(o) => write!(f, "{}", o),
+            Token::Identifier(ref s) => write!(f, "{}", s),
+            Token::Num(n) => write!(f, "{}", n),
+            Token::Function(s, _) => write!(f, "{}(...)", s),
         }
     }
 }

@@ -189,7 +189,7 @@ pub(crate) fn shunting_yard(tokens: &mut Vec<Token>) -> Result<ShuntedStack, Err
                     }
                     _ => {
                         // handle unary operators
-                        if last_op.is_some() {
+                        if last_op.is_some() && last_op.as_ref().unwrap() != &Operator::RightParen {
                             if *op == Operator::Sub {
                                 negative = true;
                                 last_was_ident = false;
